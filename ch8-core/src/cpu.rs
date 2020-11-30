@@ -159,6 +159,128 @@ impl CPU {
 
         Ok(())
     }
+
+    /// Decrement the delay timer or the sound timer if they are non-zero.
+    /// You should call this method at 60Hz in your frontend, for an accurate
+    /// emulation.
+    pub fn step_timers(&mut self) {
+        if self.dt > 0 {
+            self.dt -= 1;
+        }
+
+        if self.st > 0 {
+            self.st -= 1;
+        }
+    }
+
+    /// Get the VRAM state.
+    pub fn get_video_buffer(&self) -> &[u8] {
+        &self.vram
+    }
+
+    /// Reset the keypad state.
+    pub fn reset_keys(&mut self) {
+        self.keypad.iter_mut().for_each(|x| *x = false);
+    }
+
+    /// Set the key to either true or false at the given index.
+    pub fn set_key_at_index(&mut self, index: usize, value: bool) {
+        self.keypad[index] = value;
+    }
+
+    /// Execute one fetch-decode-execute cycle.
+    pub fn execute_cycle(&mut self) -> Result<(), u16> {
+        // Fetch the opcode from memory.
+        let opcode = self.get_opcode();
+        self.pc += 2;
+
+        let bytes = opcode.to_be_bytes();
+
+        // Decode the Instruction, and execute appropriately.
+        // Split the two byte opcode into 4 nibbles.
+        let nibbles = (
+            (bytes[0] & 0xF0) >> 4,
+            (bytes[0] & 0x0F),
+            (bytes[1] & 0xF0) >> 4,
+            (bytes[1] & 0x0F),
+        );
+
+        // Common variables are extracted here so that
+        // we don't have to do that in the method itself.
+        let x = nibbles.1 as usize;
+        let y = nibbles.2 as usize;
+
+        let kk = bytes[1];
+        let nnn = opcode & 0x0FFF;
+
+        // Match the nibble and call the correct opcode
+        // method.
+        match nibbles {
+            // 0x0000 - 0x1000
+            (0x0, 0x0, 0xE, 0x0) => self.op_00e0(),
+            (0x0, 0x0, 0xE, 0xE) => self.op_00ee(),
+
+            // 0x1000 - 0x8000
+            (0x1, _, _, _) => self.op_1nnn(nnn),
+            (0x2, _, _, _) => self.op_2nnn(nnn),
+            (0x3, _, _, _) => self.op_3xkk(x, kk),
+            (0x4, _, _, _) => self.op_4xkk(x, kk),
+            (0x5, _, _, 0) => self.op_5xy0(x, y),
+            (0x6, _, _, _) => self.op_6xkk(x, kk),
+            (0x7, _, _, _) => self.op_7xkk(x, kk),
+
+            // 0x8000 - 0x9000
+            (0x8, _, _, 0x0) => self.op_8xy0(x, y),
+            (0x8, _, _, 0x1) => self.op_8xy1(x, y),
+            (0x8, _, _, 0x2) => self.op_8xy2(x, y),
+            (0x8, _, _, 0x3) => self.op_8xy3(x, y),
+            (0x8, _, _, 0x4) => self.op_8xy4(x, y),
+            (0x8, _, _, 0x5) => self.op_8xy5(x, y),
+            (0x8, _, _, 0x6) => self.op_8xy6(x, y),
+            (0x8, _, _, 0x7) => self.op_8xy7(x, y),
+            (0x8, _, _, 0xE) => self.op_8xye(x, y),
+
+            // 0x9000 - 0xA000
+            (0x9, _, _, 0) => self.op_9xy0(x, y),
+
+            // 0xA000 - 0xC000
+            (0xA, _, _, _) => self.op_annn(nnn),
+            (0xB, _, _, _) => self.op_bnnn(nnn),
+
+            // 0xC000 - 0xD000
+            (0xC, _, _, _) => self.op_cxkk(x, kk),
+
+            // 0xD000 - 0xE000
+            (0xD, _, _, _) => self.op_dxyn(x, y, nibbles.3),
+
+            // 0xE000 - 0xF000
+            (0xE, _, 0x9, 0xE) => self.op_ex9e(x),
+            (0xE, _, 0xA, 0x1) => self.op_exa1(x),
+
+            // 0xF000
+            (0xF, _, 0x0, 0x7) => self.op_fx07(x),
+            (0xF, _, 0x0, 0xA) => self.op_fx0a(x),
+            (0xF, _, 0x1, 0x5) => self.op_fx15(x),
+            (0xF, _, 0x1, 0x8) => self.op_fx18(x),
+            (0xF, _, 0x1, 0xE) => self.op_fx1e(x),
+            (0xF, _, 0x2, 0x9) => self.op_fx29(x),
+            (0xF, _, 0x3, 0x3) => self.op_fx33(x),
+            (0xF, _, 0x5, 0x5) => self.op_fx55(x),
+            (0xF, _, 0x6, 0x5) => self.op_fx65(x),
+
+            // Unknown/Invalid opcodes
+            _ => {
+                return Err(opcode);
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Get the next opcode.
+    fn get_opcode(&mut self) -> u16 {
+        u16::from_be_bytes([self.memory[self.pc], self.memory[self.pc + 1]])
+    }
 }
 
 impl CPU {
