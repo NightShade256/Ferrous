@@ -209,8 +209,9 @@ impl CPU {
         self.shift_quirk = value;
     }
 
-    /// Execute one fetch-decode-execute cycle.
-    pub fn execute_cycle(&mut self) -> Result<(), u16> {
+    /// Execute one fetch-decode-execute cycle,
+    /// return the opcode that was fetched in the process.
+    pub fn execute_cycle(&mut self) -> u16 {
         // Fetch the opcode from memory.
         let opcode = self.get_opcode();
         self.pc += 2;
@@ -290,12 +291,10 @@ impl CPU {
             (0xF, _, 0x6, 0x5) => self.op_fx65(x),
 
             // Unknown/Invalid opcodes
-            _ => {
-                return Err(opcode);
-            }
+            _ => {}
         }
 
-        Ok(())
+        opcode
     }
 
     /// Get the next opcode.
