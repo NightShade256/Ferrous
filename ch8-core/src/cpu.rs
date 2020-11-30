@@ -70,6 +70,12 @@ pub struct CPU {
     /// Keypad Representation; Conveys whether a key is pressed (true) or not pressed
     /// (false) currently.
     pub keypad: [bool; 0x10],
+
+    /// If we should not increment I after FF55, FF65.
+    load_store_quirk: bool,
+
+    /// If we should ignore Vy in shift opcodes.
+    shift_quirk: bool,
 }
 
 // General Methods
@@ -100,6 +106,8 @@ impl CPU {
             st: 0,
             vram: vec![0; 64 * 32],
             keypad: [false; 0x10],
+            load_store_quirk: true,
+            shift_quirk: true,
         }
     }
 
@@ -130,6 +138,9 @@ impl CPU {
 
         self.vram.iter_mut().for_each(|x| *x = 0);
         self.keypad = [false; 0x10];
+
+        self.load_store_quirk = true;
+        self.shift_quirk = true;
     }
 
     /// Load a ROM into the working memory thus finalizing for execution.
@@ -186,6 +197,16 @@ impl CPU {
     /// Set the key to either true or false at the given index.
     pub fn set_key_at_index(&mut self, index: usize, value: bool) {
         self.keypad[index] = value;
+    }
+
+    /// Set the load/store quirk to the given boolean value.
+    pub fn set_load_store(&mut self, value: bool) {
+        self.load_store_quirk = value;
+    }
+
+    /// Set the shift quirk to the given boolean value.
+    pub fn set_shift(&mut self, value: bool) {
+        self.shift_quirk = value;
     }
 
     /// Execute one fetch-decode-execute cycle.
@@ -394,11 +415,12 @@ impl CPU {
 
     /// 8xy6 - SHR Vx {, Vy}  
     /// Set Vx = Vx SHR 1.
-    fn op_8xy6(&mut self, x: usize, _y: usize) {
-        let result = self.register[x].overflowing_shr(1);
+    fn op_8xy6(&mut self, x: usize, y: usize) {
+        let y = if self.shift_quirk { x } else { y };
+        self.register[0xF] = self.register[y] & 0b0000_0001;
 
-        self.register[x] = result.0;
-        self.register[0xF] = if result.1 { 1 } else { 0 };
+        let temporary = self.register[y].wrapping_shr(1);
+        self.register[x] = temporary;
     }
 
     /// 8xy7 - SUBN Vx, Vy  
@@ -410,13 +432,14 @@ impl CPU {
         self.register[0xF] = if result.1 { 0 } else { 1 };
     }
 
-    /// 8xy6 - SHL Vx {, Vy}  
+    /// 8xyE - SHL Vx {, Vy}  
     /// Set Vx = Vx SHL 1.
-    fn op_8xye(&mut self, x: usize, _y: usize) {
-        let result = self.register[x].overflowing_shl(1);
+    fn op_8xye(&mut self, x: usize, y: usize) {
+        let y = if self.shift_quirk { x } else { y };
+        self.register[0xF] = (self.register[y] & 0b1000_0000) >> 7;
 
-        self.register[x] = result.0;
-        self.register[0xF] = if result.1 { 1 } else { 0 };
+        let temporary = self.register[y].wrapping_shl(1);
+        self.register[x] = temporary;
     }
 
     /// 9xy0 - SNE Vx, Vy  
@@ -554,11 +577,19 @@ impl CPU {
     /// Store registers V0 through Vx in memory starting at location I.
     fn op_fx55(&mut self, x: usize) {
         self.memory[self.i..=self.i + x].copy_from_slice(&self.register[0..=x]);
+
+        if !self.load_store_quirk {
+            self.i = (self.i + x + 1) & 0xFFFF;
+        }
     }
 
     /// Fx65 - LD Vx, [I]  
     /// Read registers V0 through Vx from memory starting at location I.
     fn op_fx65(&mut self, x: usize) {
         self.register[0..=x].copy_from_slice(&self.memory[self.i..=self.i + x]);
+
+        if !self.load_store_quirk {
+            self.i = (self.i + x + 1) & 0xFFFF;
+        }
     }
 }
