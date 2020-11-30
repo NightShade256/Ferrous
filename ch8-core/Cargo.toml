@@ -7,4 +7,8 @@ description = "A simple Chip-8 interpreter backend."
 license = "Apache-2.0"
 readme = "README.md"
 
+[features]
+wasm-bindgen = ["rand/wasm-bindgen"]
+
 [dependencies]
+rand = "0.7.3"
