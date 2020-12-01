@@ -61,12 +61,14 @@ Open your preferred browser, and head on over to `localhost:8000` to reach the W
 
 ## Structure
 
-The 'interpreter' is divided into two parts,
+The 'interpreter' is divided into three parts,
 
 1. The `ch8-core` crate, as the name suggests, is the core interpreter
    backend. It must used to power a frontend.
 
 2. The frontend using SDL2, `ch8-sdl2` crate.
+
+3. The frontend using WASM, in `ch8-wasm` directory, see [WASM](#WASM) for more.
 
 This results in a resuable core.
 
