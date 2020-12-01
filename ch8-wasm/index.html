@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+        <title>Oxidized Chip8</title>
+
+        <meta charset="utf-8" />
+        <link rel="stylesheet" href="style.css" />
+    </head>
+
+    <body style="display: flex; flex-direction: column">
+        <!-- Main Control Bar -->
+        <header style="display: flex; flex-direction: row" class="controlBar">
+            <!-- Hide the actual input, and hook up a div to actually
+                 trigger the input. -->
+            <input id="romInput" type="file" style="display: none" />
+
+            <div class="control">Oxidized Chip8</div>
+
+            <!-- Controls -->
+            <div id="openButton" class="control hover">Open</div>
+            <div id="startButton" class="control hover">Start</div>
+            <div id="resetButton" class="control hover">Reset</div>
+
+            <div id="shiftButton" class="control hover">Shift Quirk: OFF</div>
+            <div id="loadButton" class="control hover">Load Quirk: OFF</div>
+
+            <!-- Current ROM view -->
+            <div
+                id="currentROM"
+                class="control"
+                style="border-right-width: 0rem"
+            >
+                ROM: None
+            </div>
+        </header>
+
+        <!-- Main drawing canvas -->
+        <div style="display: flex; flex-direction: row">
+            <canvas width="1152" height="576"></canvas>
+        </div>
+
+        <!-- Main entrypoint -->
+        <script type="module" src="js/script.js"></script>
+    </body>
+</html>

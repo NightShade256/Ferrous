@@ -31,6 +31,34 @@ See the help section in CLI interface,
 ./ch8-sdl2 -h
 ```
 
+## WASM
+
+Alternatively, you can play ROM(s) in your own browser (thanks to Rust's excellent support for WASM).
+To do the above you need to have `wasm-pack` installed.
+
+First, generate the WASM bindings for the `ch8-core` crate by doing,
+
+```bash
+cd ch8-core
+...
+
+wasm-pack build --target web -- --features "wasm"
+...
+```
+
+This will create a new folder `pkg` which will contains the compiled WASM file, JS shims, etc.
+Copy that folder to `ch8-wasm/`.
+
+Fire up an HTTP server by (in the `ch8-wasm` directory),
+
+```bash
+python -m http.server
+```
+
+(or by using whatever HTTP server you want)
+
+Open your preferred browser, and head on over to `localhost:8000` to reach the Web interface.
+
 ## Structure
 
 The 'interpreter' is divided into two parts,
