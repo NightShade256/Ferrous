@@ -1,4 +1,5 @@
 import init, * as core from "../pkg/ch8_core.js";
+import { AudioHandler } from "./audio.js";
 
 const canvas = document.querySelector("canvas");
 const context = canvas.getContext("2d");
@@ -10,6 +11,28 @@ let isRunning = false;
 
 // The handle provided by the first call to `setInterval`.
 let intervalHandle = null;
+
+let audioHandler = new AudioHandler();
+
+// Maps scancodes to chip8 key indices.
+const SCANCODES = new Map([
+    ["Digit1", 0x1],
+    ["Digit2", 0x2],
+    ["Digit3", 0x3],
+    ["Digit4", 0xc],
+    ["KeyQ", 0x4],
+    ["KeyW", 0x5],
+    ["KeyE", 0x6],
+    ["KeyR", 0xd],
+    ["KeyA", 0x7],
+    ["KeyS", 0x8],
+    ["KeyD", 0x9],
+    ["KeyF", 0xe],
+    ["KeyZ", 0xa],
+    ["KeyX", 0x0],
+    ["KeyC", 0xb],
+    ["KeyV", 0xf],
+]);
 
 // Clear the canvas to all black background.
 function clearCanvas() {
@@ -49,6 +72,28 @@ function onStart(_) {
         // Initiate reading the file.
         reader.readAsArrayBuffer(file);
     }
+}
+
+/// Fired when a key is pressed down.
+function onKeyPress(event) {
+    if (!SCANCODES.has(event.code) || !isRunning) {
+        return;
+    }
+
+    // Set the key to be pressed.
+    let index = SCANCODES.get(event.code);
+    CPU.set_key_at_index(index, true);
+}
+
+/// Fired when a key is released.
+function onKeyUp(event) {
+    if (!SCANCODES.has(event.code) || !isRunning) {
+        return;
+    }
+
+    // Set the key to be not pressed.
+    let index = SCANCODES.get(event.code);
+    CPU.set_key_at_index(index, false);
 }
 
 // Setup listeners for buttons, keyboard and more.
@@ -115,6 +160,9 @@ function setupListeners() {
             load.innerHTML = "Load Quirk: OFF";
         }
     });
+
+    document.addEventListener("keydown", onKeyPress);
+    document.addEventListener("keyup", onKeyUp);
 }
 
 /// Render the current frame onto the canvas.
@@ -142,6 +190,12 @@ function mainLoop() {
     }
 
     CPU.step_timers();
+
+    if (CPU.st > 0) {
+        audioHandler.try_start();
+    } else {
+        audioHandler.try_stop();
+    }
 
     renderFrame();
 }
