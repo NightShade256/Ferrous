@@ -106,8 +106,8 @@ impl CPU {
             st: 0,
             vram: vec![0; 64 * 32],
             keypad: [false; 0x10],
-            load_store_quirk: true,
-            shift_quirk: true,
+            load_store_quirk: false,
+            shift_quirk: false,
         }
     }
 
@@ -139,8 +139,8 @@ impl CPU {
         self.vram.iter_mut().for_each(|x| *x = 0);
         self.keypad = [false; 0x10];
 
-        self.load_store_quirk = true;
-        self.shift_quirk = true;
+        self.load_store_quirk = false;
+        self.shift_quirk = false;
     }
 
     /// Load a ROM into the working memory thus finalizing for execution.
