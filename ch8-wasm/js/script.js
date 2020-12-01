@@ -66,7 +66,7 @@ function onStart(_) {
 
             // Start the execution of the ROM.
             isRunning = true;
-            intervalHandle = setInterval(mainLoop, 1 / 60);
+            intervalHandle = setInterval(mainLoop, 16.67);
         });
 
         // Initiate reading the file.
