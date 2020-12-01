@@ -12,7 +12,7 @@ by following the instructions on [this](https://crates.io/crates/sdl2) page.
 Then execute the following command,
 
 ```bash
-cargo build --release
+cargo build -p ch8-sdl2 --release
 ```
 
 The executable will be stored in the directory `target/release`, copy that executable
@@ -42,7 +42,7 @@ The 'interpreter' is divided into two parts,
 
 This results in a resuable core.
 
-The core library also has a `cargo` feature called `wasm-bindgen` which
+The core library also has a `cargo` feature called `wasm` which
 allows it to target WASM running in the browsers.
 
 ## Implementation Details

@@ -17,6 +17,9 @@ limitations under the License.
 //! Contains a simple and full featured implementation
 //! of a Chip 8 interpreter.
 
+#[cfg(feature = "wasm-bindgen")]
+use wasm_bindgen::prelude::*;
+
 use crate::font::FONT_SPRITES;
 
 /// Implementation of a Chip-8 interpreter.
@@ -30,19 +33,20 @@ use crate::font::FONT_SPRITES;
 ///
 /// // Load ROM, handle display, audio and input.
 /// ```
+#[cfg_attr(feature = "wasm-bindgen", wasm_bindgen)]
 #[derive(Debug, Clone)]
 pub struct CPU {
     /// Working RAM of the CPU.
     /// 4 KB in size.
-    pub memory: Box<[u8; 0x1000]>,
+    memory: Box<[u8; 0x1000]>,
 
     /// Return address stack.
-    pub stack: Box<[u16; 0x10]>,
+    stack: Box<[u16; 0x10]>,
 
     /// Sixteen general purpose registers.
     /// Conventionally named as V0 to VF.
     /// VF is a special register, that is used as a flag.
-    pub register: [u8; 0x10],
+    register: [u8; 0x10],
 
     /// Program Counter; Stores current location in the memory.
     pub pc: usize,
@@ -65,11 +69,11 @@ pub struct CPU {
     /// screen.
     /// Each byte represents an individual pixel, where 1 means ON (White)
     /// and 0 means OFF (Black).
-    pub vram: Vec<u8>,
+    vram: Vec<u8>,
 
     /// Keypad Representation; Conveys whether a key is pressed (true) or not pressed
     /// (false) currently.
-    pub keypad: [bool; 0x10],
+    keypad: [bool; 0x10],
 
     /// If we should not increment I after FF55, FF65.
     load_store_quirk: bool,
@@ -78,6 +82,7 @@ pub struct CPU {
     shift_quirk: bool,
 }
 
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
 // General Methods
 impl CPU {
     /// Create a new `CPU` instance.
@@ -159,16 +164,16 @@ impl CPU {
     /// // Here we are just loading a stub.
     /// cpu.load_rom(&[0]);
     /// ```
-    pub fn load_rom(&mut self, buffer: &[u8]) -> Result<(), String> {
+    pub fn load_rom(&mut self, buffer: &[u8]) -> Option<String> {
         // Return an error, if bounds are exceeded.
         if buffer.len() > 3584 {
-            return Err("ROM\'s length is larger than the permitted 3584 bytes.".to_string());
+            return Some("ROM\'s length is larger than the permitted 3584 bytes.".to_string());
         }
 
         // Copy the ROM buffer.
         self.memory[0x200..0x200 + buffer.len()].copy_from_slice(&buffer);
 
-        Ok(())
+        None
     }
 
     /// Decrement the delay timer or the sound timer if they are non-zero.
@@ -182,11 +187,6 @@ impl CPU {
         if self.st > 0 {
             self.st -= 1;
         }
-    }
-
-    /// Get the VRAM state.
-    pub fn get_video_buffer(&self) -> &[u8] {
-        &self.vram
     }
 
     /// Reset the keypad state.
@@ -297,9 +297,21 @@ impl CPU {
         opcode
     }
 
+    /// Get the video buffer as a Vec<u8>.
+    pub fn clone_video_buffer(&self) -> Vec<u8> {
+        self.vram.clone()
+    }
+
     /// Get the next opcode.
     fn get_opcode(&mut self) -> u16 {
         u16::from_be_bytes([self.memory[self.pc], self.memory[self.pc + 1]])
+    }
+}
+
+impl CPU {
+    /// Get the video buffer as a &[u8].
+    pub fn get_video_buffer(&self) -> &[u8] {
+        &self.vram
     }
 }
 
