@@ -2,4 +2,5 @@
 
 members = [
     "ch8-core",
+    "ch8-sdl2",
 ]
