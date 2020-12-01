@@ -76,10 +76,10 @@ pub struct CPU {
     keypad: [bool; 0x10],
 
     /// If we should not increment I after FF55, FF65.
-    load_store_quirk: bool,
+    pub load_store_quirk: bool,
 
     /// If we should ignore Vy in shift opcodes.
-    shift_quirk: bool,
+    pub shift_quirk: bool,
 }
 
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
