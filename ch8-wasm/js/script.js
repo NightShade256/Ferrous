@@ -4,6 +4,8 @@ import { AudioHandler } from "./audio.js";
 const canvas = document.querySelector("canvas");
 const context = canvas.getContext("2d");
 
+const cyclesPerFrame = document.getElementById("cyclesPicker");
+
 let CPU = null;
 
 // Is the interpreter currently running?
@@ -185,7 +187,7 @@ function renderFrame() {
 /// Main interpreter loop.
 function mainLoop() {
     /// 10 cycles per frame = 600 cycles per second
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < cyclesPerFrame.valueAsNumber; i++) {
         CPU.execute_cycle();
     }
 
