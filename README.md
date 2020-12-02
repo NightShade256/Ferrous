@@ -33,6 +33,8 @@ See the help section in CLI interface,
 
 ## WASM
 
+A live WASM version is deployed [here](https://nightshade256.github.io/oxidized-ch8/).
+
 Alternatively, you can play ROM(s) in your own browser (thanks to Rust's excellent support for WASM).
 To do the above you need to have `wasm-pack` installed.
 
