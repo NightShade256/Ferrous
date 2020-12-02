@@ -20,7 +20,7 @@ limitations under the License.
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::*;
 
-use crate::font::FONT_SPRITES;
+use crate::font::*;
 
 /// Implementation of a Chip-8 interpreter.
 ///
@@ -75,7 +75,13 @@ pub struct CPU {
     /// (false) currently.
     keypad: [bool; 0x10],
 
-    /// If we should not increment I after FF55, FF65.
+    /// Is the interpreter in high resolution (SCHIP) mode?
+    pub is_highres: bool,
+
+    /// Has the interpreter stopped? (through EXIT SCHIP)
+    pub is_halted: bool,
+
+    /// If we should not increment I after Fx55, Fx65.
     pub load_store_quirk: bool,
 
     /// If we should ignore Vy in shift opcodes.
@@ -103,6 +109,7 @@ impl CPU {
 
         // Load font sprites into memory.
         memory[0..80].copy_from_slice(&FONT_SPRITES);
+        memory[80..240].copy_from_slice(&HIGH_RES_FONT_SPRITES);
 
         Self {
             memory,
@@ -115,6 +122,8 @@ impl CPU {
             st: 0,
             vram: vec![0; 64 * 32],
             keypad: [false; 0x10],
+            is_halted: false,
+            is_highres: false,
             load_store_quirk: false,
             shift_quirk: false,
             jump_quirk: false,
@@ -146,9 +155,11 @@ impl CPU {
         self.dt = 0;
         self.st = 0;
 
-        self.vram.iter_mut().for_each(|x| *x = 0);
+        self.vram = vec![0; 64 * 32];
         self.keypad = [false; 0x10];
 
+        self.is_halted = false;
+        self.is_highres = false;
         self.load_store_quirk = false;
         self.shift_quirk = false;
         self.jump_quirk = false;
@@ -223,6 +234,10 @@ impl CPU {
     /// Execute one fetch-decode-execute cycle,
     /// return the opcode that was fetched in the process.
     pub fn execute_cycle(&mut self) -> u16 {
+        if self.is_halted {
+            return 0xFFFF;
+        }
+
         // Fetch the opcode from memory.
         let opcode = self.get_opcode();
         self.pc += 2;
@@ -250,8 +265,14 @@ impl CPU {
         // method.
         match nibbles {
             // 0x0000 - 0x1000
+            (0x0, 0x0, 0xC, _) => self.op_00cn(nibbles.3),
             (0x0, 0x0, 0xE, 0x0) => self.op_00e0(),
             (0x0, 0x0, 0xE, 0xE) => self.op_00ee(),
+            (0x0, 0x0, 0xF, 0xB) => self.op_00fb(),
+            (0x0, 0x0, 0xF, 0xC) => self.op_00fc(),
+            (0x0, 0x0, 0xF, 0xD) => self.op_00fd(),
+            (0x0, 0x0, 0xF, 0xE) => self.op_00fe(),
+            (0x0, 0x0, 0xF, 0xF) => self.op_00ff(),
 
             // 0x1000 - 0x8000
             (0x1, _, _, _) => self.op_1nnn(nnn),
@@ -297,6 +318,7 @@ impl CPU {
             (0xF, _, 0x1, 0x8) => self.op_fx18(x),
             (0xF, _, 0x1, 0xE) => self.op_fx1e(x),
             (0xF, _, 0x2, 0x9) => self.op_fx29(x),
+            (0xF, _, 0x3, 0x0) => self.op_fx30(x),
             (0xF, _, 0x3, 0x3) => self.op_fx33(x),
             (0xF, _, 0x5, 0x5) => self.op_fx55(x),
             (0xF, _, 0x6, 0x5) => self.op_fx65(x),
@@ -314,8 +336,17 @@ impl CPU {
     }
 
     /// Get the next opcode.
-    fn get_opcode(&mut self) -> u16 {
+    fn get_opcode(&self) -> u16 {
         u16::from_be_bytes([self.memory[self.pc], self.memory[self.pc + 1]])
+    }
+
+    /// Get the current number of rows and columns.
+    pub fn get_row_col(&self) -> (u8, u8) {
+        if self.is_highres {
+            (64, 128)
+        } else {
+            (32, 64)
+        }
     }
 }
 
@@ -617,5 +648,85 @@ impl CPU {
         if !self.load_store_quirk {
             self.i = (self.i + x + 1) & 0xFFFF;
         }
+    }
+}
+
+// SCHIP opcodes
+impl CPU {
+    /// 00Cn - SCD nibble  
+    /// Scroll display N lines down.
+    fn op_00cn(&mut self, n: u8) {
+        let (rows, cols) = self.get_row_col();
+
+        // Get the number of rows that are retained.
+        let retained = rows - n;
+
+        // Get the index + 1 of the last pixel that is retained.
+        let last_index = cols as usize * retained as usize;
+
+        // Memove the retained pixels.
+        self.vram
+            .copy_within(0..last_index, cols as usize * n as usize);
+
+        // Clear the upper pixels.
+        self.vram[0..(cols as usize * n as usize)]
+            .iter_mut()
+            .for_each(|x| *x = 0);
+    }
+
+    /// 00FB - SCR  
+    /// Scroll display 4 pixels right.
+    fn op_00fb(&mut self) {
+        let (rows, cols) = self.get_row_col();
+
+        for row in 0..rows {
+            let start = cols as usize * row as usize;
+
+            self.vram
+                .copy_within(start..(start + cols as usize - 4), start + 4);
+
+            self.vram[start..start + 4].iter_mut().for_each(|x| *x = 0);
+        }
+    }
+
+    /// 00FC - SCL  
+    /// Scroll display 4 pixels left.
+    fn op_00fc(&mut self) {
+        let (rows, cols) = self.get_row_col();
+
+        for row in 0..rows {
+            let start = cols as usize * row as usize;
+            let end = start + cols as usize;
+
+            self.vram.copy_within((start + 4)..end, start);
+
+            self.vram[(end - 4)..end].iter_mut().for_each(|x| *x = 0);
+        }
+    }
+
+    /// 00FD - EXIT  
+    /// Exit CHIP interpreter.
+    fn op_00fd(&mut self) {
+        self.is_halted = true;
+    }
+
+    /// 00FE - LOW  
+    /// Disable extended screen mode.
+    fn op_00fe(&mut self) {
+        self.is_highres = false;
+        self.vram = vec![0; 64 * 32];
+    }
+
+    /// 00FF - HIGH  
+    /// Enable extended screen mode for full-screen graphics.
+    fn op_00ff(&mut self) {
+        self.is_highres = true;
+        self.vram = vec![0; 128 * 64];
+    }
+
+    /// Fx30 - LD HF, Vx  
+    /// Point I to 10-byte font sprite for VX (0..F)
+    fn op_fx30(&mut self, x: usize) {
+        self.i = (self.register[x] as usize * 10) + 80;
     }
 }
