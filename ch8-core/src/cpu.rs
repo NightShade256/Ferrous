@@ -17,7 +17,7 @@ limitations under the License.
 //! Contains a simple and full featured implementation
 //! of a Chip 8 interpreter.
 
-#[cfg(feature = "wasm-bindgen")]
+#[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::*;
 
 use crate::font::FONT_SPRITES;
@@ -33,7 +33,7 @@ use crate::font::FONT_SPRITES;
 ///
 /// // Load ROM, handle display, audio and input.
 /// ```
-#[cfg_attr(feature = "wasm-bindgen", wasm_bindgen)]
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
 #[derive(Debug, Clone)]
 pub struct CPU {
     /// Working RAM of the CPU.
@@ -80,6 +80,10 @@ pub struct CPU {
 
     /// If we should ignore Vy in shift opcodes.
     pub shift_quirk: bool,
+
+    /// Factor in the highest nibble of address to select register
+    // for jump.
+    pub jump_quirk: bool,
 }
 
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
@@ -113,6 +117,7 @@ impl CPU {
             keypad: [false; 0x10],
             load_store_quirk: false,
             shift_quirk: false,
+            jump_quirk: false,
         }
     }
 
@@ -146,6 +151,7 @@ impl CPU {
 
         self.load_store_quirk = false;
         self.shift_quirk = false;
+        self.jump_quirk = false;
     }
 
     /// Load a ROM into the working memory thus finalizing for execution.
@@ -207,6 +213,11 @@ impl CPU {
     /// Set the shift quirk to the given boolean value.
     pub fn set_shift(&mut self, value: bool) {
         self.shift_quirk = value;
+    }
+
+    /// Set the jump quirk to the given value.
+    pub fn set_jump(&mut self, value: bool) {
+        self.jump_quirk = value;
     }
 
     /// Execute one fetch-decode-execute cycle,
@@ -470,7 +481,11 @@ impl CPU {
     /// Bnnn - JP V0, addr  
     /// Jump to location nnn + V0.
     fn op_bnnn(&mut self, nnn: u16) {
-        self.pc = nnn as usize + self.register[0] as usize;
+        if self.jump_quirk {
+            self.pc = nnn as usize + self.register[(nnn >> 8) as usize & 0xF] as usize;
+        } else {
+            self.pc = nnn as usize + self.register[0] as usize;
+        }
     }
 
     /// Cxkk - RND Vx, byte  
