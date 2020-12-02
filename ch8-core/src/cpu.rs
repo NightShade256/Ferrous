@@ -346,6 +346,13 @@ impl CPU {
     fn get_opcode(&self) -> u16 {
         u16::from_be_bytes([self.memory[self.pc], self.memory[self.pc + 1]])
     }
+}
+
+impl CPU {
+    /// Get the video buffer as a &[u8].
+    pub fn get_video_buffer(&self) -> &[u8] {
+        &self.vram
+    }
 
     /// Get the current number of rows and columns.
     pub fn get_row_col(&self) -> (usize, usize) {
@@ -354,13 +361,6 @@ impl CPU {
         } else {
             (32, 64)
         }
-    }
-}
-
-impl CPU {
-    /// Get the video buffer as a &[u8].
-    pub fn get_video_buffer(&self) -> &[u8] {
-        &self.vram
     }
 }
 
