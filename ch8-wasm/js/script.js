@@ -171,15 +171,19 @@ function setupListeners() {
 function renderFrame() {
     let buffer = CPU.clone_video_buffer();
 
-    for (let row = 0; row < 32; row++) {
-        for (let col = 0; col < 64; col++) {
-            if (buffer[row * 64 + col] == 0) {
+    let columns = CPU.is_highres ? 128 : 64;
+    let rows = CPU.is_highres ? 64 : 32;
+    let scale = CPU.is_highres ? 9 : 18;
+
+    for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < columns; col++) {
+            if (buffer[row * columns + col] == 0) {
                 context.fillStyle = "black";
             } else {
                 context.fillStyle = "white";
             }
 
-            context.fillRect(col * 18, row * 18, 18, 18);
+            context.fillRect(col * scale, row * scale, scale, scale);
         }
     }
 }
