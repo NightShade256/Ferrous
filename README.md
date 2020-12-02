@@ -59,6 +59,10 @@ python -m http.server
 
 Open your preferred browser, and head on over to `localhost:8000` to reach the Web interface.
 
+**Note:** The WASM frontend might be a little slow and underperforming than the SDL frontend.
+This is because the VRAM buffer is (cloned) transferred each frame between the WASM and JS boundary.
+This will improve over time in the due to future WASM proposals.
+
 ## Structure
 
 The 'interpreter' is divided into three parts,
