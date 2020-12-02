@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use ch8_core::CPU;
 use sdl2::{pixels::Color, rect::Rect, render::Canvas, video::Window, Sdl};
 
 /// VRAM -> SDL2 Window Scale.
@@ -44,12 +45,15 @@ impl Renderer {
     }
 
     /// Render the VRAM buffer onto the screen.
-    pub fn render(&mut self, buffer: &[u8]) {
-        for row in 0..32 {
-            let offset = row * 64;
+    pub fn render(&mut self, cpu: &CPU) {
+        let (rows, cols) = cpu.get_row_col();
+        let scale = if cpu.is_highres { SCALE / 2 } else { SCALE };
 
-            for col in 0..64 {
-                let color = if buffer[offset + col] == 0 {
+        for row in 0..rows {
+            let offset = row as usize * cols as usize;
+
+            for col in 0..cols {
+                let color = if cpu.get_video_buffer()[offset + col as usize] == 0 {
                     Color::RGB(0, 0, 0)
                 } else {
                     Color::RGB(255, 255, 255)
@@ -57,10 +61,10 @@ impl Renderer {
 
                 self.canvas.set_draw_color(color);
 
-                let x = (col as i32) * SCALE;
-                let y = (row as i32) * SCALE;
+                let x = (col as i32) * scale;
+                let y = (row as i32) * scale;
 
-                let rect = Rect::new(x, y, SCALE as u32, SCALE as u32);
+                let rect = Rect::new(x, y, scale as u32, scale as u32);
                 self.canvas.fill_rect(rect).unwrap();
             }
         }

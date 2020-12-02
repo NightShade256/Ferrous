@@ -112,7 +112,7 @@ fn main() {
         }
 
         // Render the current frame.
-        renderer.render(cpu.get_video_buffer());
+        renderer.render(&cpu);
 
         // Sleep for 16.67 ms.
         sleep(Duration::from_secs_f64(1.0 / 60.0));
