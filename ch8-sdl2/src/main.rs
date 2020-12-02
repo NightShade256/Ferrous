@@ -46,6 +46,13 @@ fn main() {
                 .short("s")
                 .long("shift-quirk"),
         )
+        .arg(
+            Arg::with_name("cycles")
+                .help("Number of cycles to execute per frame")
+                .short("c")
+                .help("cycles")
+                .takes_value(true),
+        )
         .get_matches();
 
     let path = matches.value_of("file").unwrap();
@@ -66,6 +73,12 @@ fn main() {
     cpu.set_load_store(lsq);
     cpu.set_shift(sfq);
 
+    let cycles_per_frame = matches
+        .value_of("cycles")
+        .unwrap_or("10")
+        .parse::<i32>()
+        .unwrap();
+
     // Load the Chip8 ROM into memory.
     match cpu.load_rom(&rom) {
         None => {}
@@ -78,7 +91,7 @@ fn main() {
     'main: loop {
         // This gets called 10 times per frame,
         // thus yielding 600 cycles per second.
-        for _ in 0..10 {
+        for _ in 0..cycles_per_frame {
             cpu.execute_cycle();
         }
 
