@@ -1,6 +1,6 @@
 # Oxidized Chip8
 
-A simple, full featured Chip-8 interpreter implementation in Rust.
+A simple, full featured (S)Chip-8 interpreter implementation in Rust.
 
 ## Building
 
