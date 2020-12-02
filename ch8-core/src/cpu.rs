@@ -305,7 +305,7 @@ impl CPU {
             (0xC, _, _, _) => self.op_cxkk(x, kk),
 
             // 0xD000 - 0xE000
-            (0xD, _, _, _) => self.op_dxyn(x, y, nibbles.3),
+            (0xD, _, _, _) => self.op_dxyn(x, y, nibbles.3 as usize),
 
             // 0xE000 - 0xF000
             (0xE, _, 0x9, 0xE) => self.op_ex9e(x),
@@ -341,7 +341,7 @@ impl CPU {
     }
 
     /// Get the current number of rows and columns.
-    pub fn get_row_col(&self) -> (u8, u8) {
+    pub fn get_row_col(&self) -> (usize, usize) {
         if self.is_highres {
             (64, 128)
         } else {
@@ -528,34 +528,46 @@ impl CPU {
     /// Dxyn - DRW Vx, Vy, nibble  
     /// Display n-byte sprite starting at memory location I at (Vx, Vy),
     /// set VF = collision.
-    fn op_dxyn(&mut self, vx: usize, vy: usize, n: u8) {
-        let x = self.register[vx] % 64;
-        let y = self.register[vy] % 32;
+    fn op_dxyn(&mut self, vx: usize, vy: usize, n: usize) {
+        let (rows, cols) = self.get_row_col();
+
+        let x = self.register[vx] as usize;
+        let y = self.register[vy] as usize;
 
         self.register[0xF] = 0;
 
-        // for n rows
-        for row in 0..n {
-            let byte = self.memory[self.i + row as usize];
+        if n == 0 {
+            // Super Chip 16x16 sprite
+            for r in 0..16 {
+                for c in 0..16 {
+                    let byte = self.memory[self.i + (r * 2) + (if c > 7 { 1 } else { 0 })] as usize;
 
-            // for 8 columns.
-            for col in 0..8 {
-                // First check if the bit at the specific column is on.
-                if (byte & (0x80 >> col)) != 0 {
-                    let actual = (x + col) as usize + ((y + row) as usize * 64);
+                    if (byte & (0x80 >> (c % 8))) != 0 {
+                        let index = ((x + c) % cols) + ((y + r) % rows) * cols;
 
-                    // Prevent out of bounds access.
-                    if actual >= 2048 {
-                        continue;
+                        if self.vram[index] == 1 {
+                            self.register[0xF] = 1;
+                        }
+
+                        self.vram[index] ^= 1;
                     }
+                }
+            }
+        } else {
+            // Chip 8xN sprite
+            for r in 0..n {
+                for c in 0..8 {
+                    let byte = self.memory[self.i + r] as usize;
 
-                    // If the pixel is already set register a collsion.
-                    if self.vram[actual] == 1 {
-                        self.register[0xF] = 1;
+                    if (byte & (0x80 >> c)) != 0 {
+                        let index = ((x + c) % cols) + ((y + r) % rows) * cols;
+
+                        if self.vram[index] == 1 {
+                            self.register[0xF] = 1;
+                        }
+
+                        self.vram[index] ^= 1;
                     }
-
-                    // XOR the pixel onto the buffer.
-                    self.vram[actual] ^= 1;
                 }
             }
         }
@@ -659,7 +671,7 @@ impl CPU {
         let (rows, cols) = self.get_row_col();
 
         // Get the number of rows that are retained.
-        let retained = rows - n;
+        let retained = rows as u8 - n;
 
         // Get the index + 1 of the last pixel that is retained.
         let last_index = cols as usize * retained as usize;
