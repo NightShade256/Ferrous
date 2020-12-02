@@ -90,6 +90,9 @@ pub struct CPU {
     /// Factor in the highest nibble of address to select register
     // for jump.
     pub jump_quirk: bool,
+
+    /// Super Chip 8 flag registers.
+    flag_regs: [u8; 8],
 }
 
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
@@ -122,6 +125,7 @@ impl CPU {
             st: 0,
             vram: vec![0; 64 * 32],
             keypad: [false; 0x10],
+            flag_regs: [0; 8],
             is_halted: false,
             is_highres: false,
             load_store_quirk: false,
@@ -131,6 +135,7 @@ impl CPU {
     }
 
     /// Reset the interpreter to its initial state.
+    /// Flag Registers are persistent even after a reset.
     ///
     /// # Example
     ///
@@ -322,6 +327,8 @@ impl CPU {
             (0xF, _, 0x3, 0x3) => self.op_fx33(x),
             (0xF, _, 0x5, 0x5) => self.op_fx55(x),
             (0xF, _, 0x6, 0x5) => self.op_fx65(x),
+            (0xF, _, 0x7, 0x5) => self.op_fx75(x),
+            (0xF, _, 0x8, 0x5) => self.op_fx85(x),
 
             // Unknown/Invalid opcodes
             _ => {}
@@ -740,5 +747,17 @@ impl CPU {
     /// Point I to 10-byte font sprite for VX (0..F)
     fn op_fx30(&mut self, x: usize) {
         self.i = (self.register[x] as usize * 10) + 80;
+    }
+
+    /// Fx75 - LD R, Vx  
+    /// Store V0..VX in RPL user flags (X <= 7)
+    fn op_fx75(&mut self, x: usize) {
+        self.flag_regs[0..=x].copy_from_slice(&self.register[0..=x]);
+    }
+
+    /// Fx85 - LD Vx, R  
+    /// Read V0..VX from RPL user flags (X <= 7)
+    fn op_fx85(&mut self, x: usize) {
+        self.register[0..=x].copy_from_slice(&self.flag_regs[0..=x]);
     }
 }
