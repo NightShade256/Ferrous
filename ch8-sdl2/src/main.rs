@@ -26,7 +26,7 @@ mod graphics;
 /// Main entrypoint.
 fn main() {
     let matches = App::new("Oxidized Chip8")
-        .version("0.1.2")
+        .version("0.2.0")
         .about("A simple, accurate Chip8 emulator written in Rust.")
         .arg(
             Arg::with_name("file")
