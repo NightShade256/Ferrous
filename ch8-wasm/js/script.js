@@ -169,23 +169,7 @@ function setupListeners() {
 
 /// Render the current frame onto the canvas.
 function renderFrame() {
-    let buffer = CPU.clone_video_buffer();
-
-    let columns = CPU.is_highres ? 128 : 64;
-    let rows = CPU.is_highres ? 64 : 32;
-    let scale = CPU.is_highres ? 9 : 18;
-
-    for (let row = 0; row < rows; row++) {
-        for (let col = 0; col < columns; col++) {
-            if (buffer[row * columns + col] == 0) {
-                context.fillStyle = "black";
-            } else {
-                context.fillStyle = "white";
-            }
-
-            context.fillRect(col * scale, row * scale, scale, scale);
-        }
-    }
+    CPU.render(context);
 }
 
 /// Main interpreter loop.

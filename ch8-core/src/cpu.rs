@@ -24,6 +24,9 @@ use alloc::{
     vec::Vec,
 };
 
+#[cfg(feature = "wasm")]
+use ::{wasm_bindgen::prelude::*, web_sys::CanvasRenderingContext2d};
+
 use crate::font::*;
 
 /// Implementation of a Chip-8 interpreter.
@@ -37,19 +40,20 @@ use crate::font::*;
 ///
 /// // Load ROM, handle display, audio and input.
 /// ```
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
 #[derive(Debug, Clone)]
 pub struct CPU {
     /// Working RAM of the CPU.
     /// 4 KB in size.
-    pub memory: Box<[u8; 0x1000]>,
+    memory: Box<[u8; 0x1000]>,
 
     /// Return address stack.
-    pub stack: Box<[u16; 0x10]>,
+    stack: Box<[u16; 0x10]>,
 
     /// Sixteen general purpose registers.
     /// Conventionally named as V0 to VF.
     /// VF is a special register, that is used as a flag.
-    pub register: [u8; 0x10],
+    register: [u8; 0x10],
 
     /// Program Counter; Stores current location in the memory.
     pub pc: usize,
@@ -72,11 +76,11 @@ pub struct CPU {
     /// screen.
     /// Each byte represents an individual pixel, where 1 means ON (White)
     /// and 0 means OFF (Black).
-    pub vram: Vec<u8>,
+    vram: Vec<u8>,
 
     /// Keypad Representation; Conveys whether a key is pressed (true) or not pressed
     /// (false) currently.
-    pub keypad: [bool; 0x10],
+    keypad: [bool; 0x10],
 
     /// Is the interpreter in high resolution (SCHIP) mode?
     pub is_highres: bool,
@@ -95,10 +99,11 @@ pub struct CPU {
     pub jump_quirk: bool,
 
     /// Super Chip 8 flag registers.
-    pub flag_regs: [u8; 8],
+    flag_regs: [u8; 8],
 }
 
 /// General Methods
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
 impl CPU {
     /// Create a new `CPU` instance.
     ///
@@ -348,6 +353,34 @@ impl CPU {
         opcode
     }
 
+    /// Fetch the next opcode that is to be executed from the ROM.
+    fn get_opcode(&self) -> u16 {
+        u16::from_be_bytes([self.memory[self.pc], self.memory[self.pc + 1]])
+    }
+}
+
+#[cfg(feature = "wasm")]
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
+impl CPU {
+    pub fn render(&self, ctx: &CanvasRenderingContext2d) {
+        let (rows, cols) = self.get_row_col();
+        let scale = if self.is_highres { 9.0 } else { 18.0 };
+
+        for row in 0..rows {
+            for col in 0..cols {
+                if self.vram[row * cols + col] == 0 {
+                    ctx.set_fill_style(&JsValue::from_str("black"));
+                } else {
+                    ctx.set_fill_style(&JsValue::from_str("white"));
+                }
+
+                ctx.fill_rect(col as f64 * scale, row as f64 * scale, scale, scale);
+            }
+        }
+    }
+}
+
+impl CPU {
     /// Fetch the VRAM as a reference to a u8 slice.
     pub fn get_video_buffer(&self) -> &[u8] {
         &self.vram
@@ -360,11 +393,6 @@ impl CPU {
         } else {
             (32, 64)
         }
-    }
-
-    /// Fetch the next opcode that is to be executed from the ROM.
-    fn get_opcode(&self) -> u16 {
-        u16::from_be_bytes([self.memory[self.pc], self.memory[self.pc + 1]])
     }
 }
 
