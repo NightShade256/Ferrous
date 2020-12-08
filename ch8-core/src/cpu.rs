@@ -17,6 +17,13 @@ limitations under the License.
 //! Contains a simple and full featured implementation
 //! of a Chip 8 interpreter.
 
+use alloc::{
+    boxed::Box,
+    string::{String, ToString},
+    vec,
+    vec::Vec,
+};
+
 use crate::font::*;
 
 /// Implementation of a Chip-8 interpreter.
