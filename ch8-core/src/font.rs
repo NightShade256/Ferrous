@@ -15,10 +15,9 @@ limitations under the License.
 */
 
 //! Contains font sprites for the interpreter.
+//! The sprite data was taken from the Octo interpreter.
 
-/// The Chip 8 font sprites.
-/// They are required to draw all the basic
-/// characters on the screen.
+/// Standard low resolution font sprites.
 pub const FONT_SPRITES: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
     0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -38,7 +37,9 @@ pub const FONT_SPRITES: [u8; 80] = [
     0xF0, 0x80, 0xF0, 0x80, 0x80, // F
 ];
 
-/// Font sprites but high res.
+/// Super Chip high resolution font sprites.
+/// These include the characters A to F even though
+/// the original Super Chip interpreter didn't have them.
 pub const HIGH_RES_FONT_SPRITES: [u8; 160] = [
     0xFF, 0xFF, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xFF, 0xFF, // 0
     0x18, 0x78, 0x78, 0x18, 0x18, 0x18, 0x18, 0x18, 0xFF, 0xFF, // 1

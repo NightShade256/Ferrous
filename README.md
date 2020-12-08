@@ -2,6 +2,11 @@
 
 A simple, full featured (S)Chip-8 interpreter implementation in Rust.
 
+## Note
+
+Please **use a tagged release from the Github Releases page** as the master branch is
+always a WIP and may break from time to time.
+
 ## Building
 
 You can use the `ch8-sdl2` crate, to play ROM(s) with ease.

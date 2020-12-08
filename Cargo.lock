@@ -49,7 +49,6 @@ name = "ch8-core"
 version = "0.3.0"
 dependencies = [
  "rand",
- "wasm-bindgen",
 ]
 
 [[package]]

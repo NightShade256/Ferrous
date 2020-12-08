@@ -6,16 +6,10 @@ edition = "2018"
 description = "A simple Chip-8 interpreter backend."
 license = "Apache-2.0"
 readme = "README.md"
-
-[lib]
-crate-type = ["cdylib", "rlib"]
+repository = "https://github.com/NightShade256/oxidized-ch8"
 
 [features]
-wasm = ["wasm-bindgen", "rand/wasm-bindgen"]
+wasm = ["rand/wasm-bindgen"]
 
 [dependencies]
 rand = "0.7.3"
-wasm-bindgen = { version = "0.2.69", optional = true }
-
-[package.metadata.wasm-pack.profile.release]
-wasm-opt = ["-O3", "--enable-mutable-globals"]

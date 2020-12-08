@@ -17,9 +17,6 @@ limitations under the License.
 //! Contains a simple and full featured implementation
 //! of a Chip 8 interpreter.
 
-#[cfg(feature = "wasm")]
-use wasm_bindgen::prelude::*;
-
 use crate::font::*;
 
 /// Implementation of a Chip-8 interpreter.
@@ -33,20 +30,19 @@ use crate::font::*;
 ///
 /// // Load ROM, handle display, audio and input.
 /// ```
-#[cfg_attr(feature = "wasm", wasm_bindgen)]
 #[derive(Debug, Clone)]
 pub struct CPU {
     /// Working RAM of the CPU.
     /// 4 KB in size.
-    memory: Box<[u8; 0x1000]>,
+    pub memory: Box<[u8; 0x1000]>,
 
     /// Return address stack.
-    stack: Box<[u16; 0x10]>,
+    pub stack: Box<[u16; 0x10]>,
 
     /// Sixteen general purpose registers.
     /// Conventionally named as V0 to VF.
     /// VF is a special register, that is used as a flag.
-    register: [u8; 0x10],
+    pub register: [u8; 0x10],
 
     /// Program Counter; Stores current location in the memory.
     pub pc: usize,
@@ -69,11 +65,11 @@ pub struct CPU {
     /// screen.
     /// Each byte represents an individual pixel, where 1 means ON (White)
     /// and 0 means OFF (Black).
-    vram: Vec<u8>,
+    pub vram: Vec<u8>,
 
     /// Keypad Representation; Conveys whether a key is pressed (true) or not pressed
     /// (false) currently.
-    keypad: [bool; 0x10],
+    pub keypad: [bool; 0x10],
 
     /// Is the interpreter in high resolution (SCHIP) mode?
     pub is_highres: bool,
@@ -92,11 +88,10 @@ pub struct CPU {
     pub jump_quirk: bool,
 
     /// Super Chip 8 flag registers.
-    flag_regs: [u8; 8],
+    pub flag_regs: [u8; 8],
 }
 
-#[cfg_attr(feature = "wasm", wasm_bindgen)]
-// General Methods
+/// General Methods
 impl CPU {
     /// Create a new `CPU` instance.
     ///
@@ -198,9 +193,11 @@ impl CPU {
         None
     }
 
-    /// Decrement the delay timer or the sound timer if they are non-zero.
-    /// You should call this method at 60Hz in your frontend, for an accurate
-    /// emulation.
+    /// Decrement the delay timer and sound timer if they are non-zero.
+    ///
+    /// They are expected to be decremented at 60Hz therefore your frontend
+    /// should call this function roughly every 16.67 milliseconds for an
+    /// accurate emulation.
     pub fn step_timers(&mut self) {
         if self.dt > 0 {
             self.dt -= 1;
@@ -211,12 +208,16 @@ impl CPU {
         }
     }
 
-    /// Reset the keypad state.
+    /// Reset the keypad to its initial state.
+    ///
+    /// This will make all the keys 'unpressed'
+    /// by resetting all values in the keypad array to false.
     pub fn reset_keys(&mut self) {
         self.keypad.iter_mut().for_each(|x| *x = false);
     }
 
-    /// Set the key to either true or false at the given index.
+    /// Set the key to either be pressed (true) or unpressed (false)
+    /// at the given index.
     pub fn set_key_at_index(&mut self, index: usize, value: bool) {
         self.keypad[index] = value;
     }
@@ -238,6 +239,9 @@ impl CPU {
 
     /// Execute one fetch-decode-execute cycle,
     /// return the opcode that was fetched in the process.
+    ///
+    /// Currently if the CPU is halted as a result of a superchip
+    /// HALT opcode this function does nothing but return 0xFFFF.
     pub fn execute_cycle(&mut self) -> u16 {
         if self.is_halted {
             return 0xFFFF;
@@ -337,24 +341,12 @@ impl CPU {
         opcode
     }
 
-    /// Get the video buffer as a Vec<u8>.
-    pub fn clone_video_buffer(&self) -> Vec<u8> {
-        self.vram.clone()
-    }
-
-    /// Get the next opcode.
-    fn get_opcode(&self) -> u16 {
-        u16::from_be_bytes([self.memory[self.pc], self.memory[self.pc + 1]])
-    }
-}
-
-impl CPU {
-    /// Get the video buffer as a &[u8].
+    /// Fetch the VRAM as a reference to a u8 slice.
     pub fn get_video_buffer(&self) -> &[u8] {
         &self.vram
     }
 
-    /// Get the current number of rows and columns.
+    /// Get the current number of rows and columns as tuple.
     pub fn get_row_col(&self) -> (usize, usize) {
         if self.is_highres {
             (64, 128)
@@ -362,8 +354,14 @@ impl CPU {
             (32, 64)
         }
     }
+
+    /// Fetch the next opcode that is to be executed from the ROM.
+    fn get_opcode(&self) -> u16 {
+        u16::from_be_bytes([self.memory[self.pc], self.memory[self.pc + 1]])
+    }
 }
 
+/// Standard CHIP opcodes.
 impl CPU {
     /// 00E0 - CLS  
     /// Clear the display.
@@ -670,7 +668,7 @@ impl CPU {
     }
 }
 
-// SCHIP opcodes
+/// SCHIP opcodes
 impl CPU {
     /// 00Cn - SCD nibble  
     /// Scroll display N lines down.
