@@ -17,9 +17,6 @@ limitations under the License.
 use ch8_core::CPU;
 use sdl2::{pixels::Color, rect::Rect, render::Canvas, video::Window, Sdl};
 
-/// VRAM -> SDL2 Window Scale.
-const SCALE: i32 = 10;
-
 /// Holds the canvas for rendering to the screen.
 pub struct Renderer {
     canvas: Canvas<Window>,
@@ -32,6 +29,7 @@ impl Renderer {
         let window = video_sys
             .window("Oxidized Chip8", 640, 320)
             .position_centered()
+            .resizable()
             .build()
             .unwrap();
 
@@ -47,13 +45,20 @@ impl Renderer {
     /// Render the VRAM buffer onto the screen.
     pub fn render(&mut self, cpu: &CPU) {
         let (rows, cols) = cpu.get_row_col();
-        let scale = if cpu.is_highres { SCALE / 2 } else { SCALE };
+        let (width, height) = self.canvas.window().size();
+        let buffer = cpu.get_video_buffer();
+
+        let (row_scale, col_scale) = if cpu.is_highres {
+            (width / 128, height / 64)
+        } else {
+            (width / 64, height / 32)
+        };
 
         for row in 0..rows {
             let offset = row as usize * cols as usize;
 
             for col in 0..cols {
-                let color = if cpu.get_video_buffer()[offset + col as usize] == 0 {
+                let color = if buffer[offset + col as usize] == 0 {
                     Color::RGB(0, 0, 0)
                 } else {
                     Color::RGB(255, 255, 255)
@@ -61,10 +66,10 @@ impl Renderer {
 
                 self.canvas.set_draw_color(color);
 
-                let x = (col as i32) * scale;
-                let y = (row as i32) * scale;
+                let x = (col as i32) * row_scale as i32;
+                let y = (row as i32) * col_scale as i32;
 
-                let rect = Rect::new(x, y, scale as u32, scale as u32);
+                let rect = Rect::new(x, y, row_scale, col_scale);
                 self.canvas.fill_rect(rect).unwrap();
             }
         }
