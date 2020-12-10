@@ -18,10 +18,14 @@ jobs:
           override: true
         
       - name: Build
-        run: cargo build -p ch8-sdl2 --release -- --features "bundled"
+        run:
+          cd ch8-sdl2
+          cargo build --release --features "bundled"
 
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: target/release/ch8-sdl2.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
