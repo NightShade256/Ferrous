@@ -12,3 +12,7 @@ repository = "https://github.com/NightShade256/oxidized-ch8"
 ch8-core = { path = "../ch8-core" }
 clap = "2.33.3"
 sdl2 = "0.34.3"
+
+[features]
+
+bundled = ["sdl2/bundled"]
