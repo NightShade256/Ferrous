@@ -18,9 +18,8 @@ jobs:
           override: true
         
       - name: Build
-        run:
-          - cd ch8-sdl2
-          - cargo build --release --features "bundled"
+        run: cd ch8-sdl2
+        run: cargo build --release --features "bundled"
 
       - name: Release
         uses: softprops/action-gh-release@v1
