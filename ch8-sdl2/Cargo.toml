@@ -1,6 +1,6 @@
 [package]
 name = "ch8-sdl2"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Anish Jewalikar <anishjewalikar@gmail.com>"]
 edition = "2018"
 description = "A frontend for `ch8-core` with SDL2."
@@ -14,5 +14,4 @@ clap = "2.33.3"
 sdl2 = "0.34.3"
 
 [features]
-
 bundled = ["sdl2/bundled"]

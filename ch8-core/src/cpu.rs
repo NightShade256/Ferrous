@@ -20,8 +20,6 @@ limitations under the License.
 use alloc::{
     boxed::Box,
     string::{String, ToString},
-    vec,
-    vec::Vec,
 };
 
 #[cfg(feature = "wasm")]
@@ -76,7 +74,7 @@ pub struct CPU {
     /// screen.
     /// Each byte represents an individual pixel, where 1 means ON (White)
     /// and 0 means OFF (Black).
-    vram: Vec<u8>,
+    vram: Box<[u8; 128 * 64]>,
 
     /// Keypad Representation; Conveys whether a key is pressed (true) or not pressed
     /// (false) currently.
@@ -130,7 +128,7 @@ impl CPU {
             i: 0,
             dt: 0,
             st: 0,
-            vram: vec![0; 64 * 32],
+            vram: Box::new([0; 128 * 64]),
             keypad: [false; 0x10],
             flag_regs: [0; 8],
             is_halted: false,
@@ -167,7 +165,7 @@ impl CPU {
         self.dt = 0;
         self.st = 0;
 
-        self.vram = vec![0; 64 * 32];
+        self.vram.iter_mut().for_each(|x| *x = 0);
         self.keypad = [false; 0x10];
 
         self.is_halted = false;
@@ -383,7 +381,7 @@ impl CPU {
 impl CPU {
     /// Fetch the VRAM as a reference to a u8 slice.
     pub fn get_video_buffer(&self) -> &[u8] {
-        &self.vram
+        self.vram.as_ref()
     }
 
     /// Get the current number of rows and columns as tuple.
@@ -766,14 +764,14 @@ impl CPU {
     /// Disable extended screen mode.
     fn op_00fe(&mut self) {
         self.is_highres = false;
-        self.vram = vec![0; 64 * 32];
+        self.op_00e0();
     }
 
     /// 00FF - HIGH  
     /// Enable extended screen mode for full-screen graphics.
     fn op_00ff(&mut self) {
         self.is_highres = true;
-        self.vram = vec![0; 128 * 64];
+        self.op_00e0();
     }
 
     /// Fx30 - LD HF, Vx  
