@@ -1,6 +1,22 @@
 [workspace]
-
 members = [
-    "ch8-core",
-    "ch8-sdl2",
+    "ferrous-core",
 ]
+
+[package]
+name = "ferrous-ch8"
+version = "0.2.2"
+authors = ["Anish Jewalikar <anishjewalikar@gmail.com>"]
+edition = "2018"
+description = "A frontend for `ch8-core` with SDL2."
+license = "Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/NightShade256/oxidized-ch8"
+
+[dependencies]
+ferrous-core = { path = "./ferrous-core" }
+clap = "2.33"
+sdl2 = "0.34"
+
+[features]
+bundled = ["sdl2/bundled"]

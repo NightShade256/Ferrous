@@ -16,8 +16,8 @@ limitations under the License.
 
 use std::{fs, thread::sleep, time::Duration};
 
-use ch8_core::CPU;
 use clap::{App, Arg};
+use ferrous_core::CPU;
 use sdl2::{event::Event, keyboard::Keycode, EventPump};
 
 mod audio;

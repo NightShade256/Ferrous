@@ -19,9 +19,6 @@ limitations under the License.
 
 #![allow(dead_code)]
 #![allow(clippy::clippy::new_without_default)]
-#![no_std]
-
-extern crate alloc;
 
 mod cpu;
 mod font;

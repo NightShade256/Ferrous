@@ -17,14 +17,6 @@ limitations under the License.
 //! Contains a simple and full featured implementation
 //! of a Chip 8 interpreter.
 
-use alloc::{
-    boxed::Box,
-    string::{String, ToString},
-};
-
-#[cfg(feature = "wasm")]
-use ::{wasm_bindgen::prelude::*, web_sys::CanvasRenderingContext2d};
-
 use crate::font::*;
 
 /// Implementation of a Chip-8 interpreter.
@@ -38,7 +30,6 @@ use crate::font::*;
 ///
 /// // Load ROM, handle display, audio and input.
 /// ```
-#[cfg_attr(feature = "wasm", wasm_bindgen)]
 #[derive(Debug, Clone)]
 pub struct CPU {
     /// Working RAM of the CPU.
@@ -101,7 +92,6 @@ pub struct CPU {
 }
 
 /// General Methods
-#[cfg_attr(feature = "wasm", wasm_bindgen)]
 impl CPU {
     /// Create a new `CPU` instance.
     ///
@@ -355,30 +345,7 @@ impl CPU {
     fn get_opcode(&self) -> u16 {
         u16::from_be_bytes([self.memory[self.pc], self.memory[self.pc + 1]])
     }
-}
 
-#[cfg(feature = "wasm")]
-#[cfg_attr(feature = "wasm", wasm_bindgen)]
-impl CPU {
-    pub fn render(&self, ctx: &CanvasRenderingContext2d) {
-        let (rows, cols) = self.get_row_col();
-        let scale = if self.is_highres { 9.0 } else { 18.0 };
-
-        for row in 0..rows {
-            for col in 0..cols {
-                if self.vram[row * cols + col] == 0 {
-                    ctx.set_fill_style(&JsValue::from_str("black"));
-                } else {
-                    ctx.set_fill_style(&JsValue::from_str("white"));
-                }
-
-                ctx.fill_rect(col as f64 * scale, row as f64 * scale, scale, scale);
-            }
-        }
-    }
-}
-
-impl CPU {
     /// Fetch the VRAM as a reference to a u8 slice.
     pub fn get_video_buffer(&self) -> &[u8] {
         self.vram.as_ref()

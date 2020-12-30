@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use ch8_core::CPU;
+use ferrous_core::CPU;
 use sdl2::{pixels::Color, rect::Rect, render::Canvas, video::Window, Sdl};
 
 /// Holds the canvas for rendering to the screen.
