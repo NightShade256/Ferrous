@@ -44,7 +44,7 @@ impl Renderer {
 
     /// Render the VRAM buffer onto the screen.
     pub fn render(&mut self, cpu: &CPU) {
-        let (rows, cols) = cpu.get_row_col();
+        let (rows, cols) = cpu.get_height_width();
         let (width, height) = self.canvas.window().size();
         let buffer = cpu.get_video_buffer();
 

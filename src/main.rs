@@ -81,9 +81,9 @@ fn main() {
 
     // Load the Chip8 ROM into memory.
     match cpu.load_rom(&rom) {
-        None => {}
-        Some(_) => {
-            eprintln!("The ROM is greater than 3584 bytes in size.");
+        Ok(_) => {}
+        Err(error) => {
+            eprintln!("{}", error);
             return;
         }
     }

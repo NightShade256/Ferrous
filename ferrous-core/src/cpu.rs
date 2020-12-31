@@ -15,11 +15,11 @@ limitations under the License.
 */
 
 //! Contains a simple and full featured implementation
-//! of a Chip 8 interpreter.
+//! of a (super) Chip-8 interpreter.
 
 use crate::font::*;
 
-/// Implementation of a Chip-8 interpreter.
+/// Implementation of a (super) Chip-8 interpreter.
 ///
 /// # Example
 ///
@@ -34,15 +34,15 @@ use crate::font::*;
 pub struct CPU {
     /// Working RAM of the CPU.
     /// 4 KB in size.
-    memory: Box<[u8; 0x1000]>,
+    pub memory: Box<[u8; 0x1000]>,
 
     /// Return address stack.
-    stack: Box<[u16; 0x10]>,
+    pub stack: Box<[u16; 0x10]>,
 
     /// Sixteen general purpose registers.
     /// Conventionally named as V0 to VF.
     /// VF is a special register, that is used as a flag.
-    register: [u8; 0x10],
+    pub register: Box<[u8; 0x10]>,
 
     /// Program Counter; Stores current location in the memory.
     pub pc: usize,
@@ -65,11 +65,11 @@ pub struct CPU {
     /// screen.
     /// Each byte represents an individual pixel, where 1 means ON (White)
     /// and 0 means OFF (Black).
-    vram: Box<[u8; 128 * 64]>,
+    pub vram: Box<[u8; 128 * 64]>,
 
     /// Keypad Representation; Conveys whether a key is pressed (true) or not pressed
     /// (false) currently.
-    keypad: [bool; 0x10],
+    pub keypad: Box<[bool; 0x10]>,
 
     /// Is the interpreter in high resolution (SCHIP) mode?
     pub is_highres: bool,
@@ -88,7 +88,13 @@ pub struct CPU {
     pub jump_quirk: bool,
 
     /// Super Chip 8 flag registers.
-    flag_regs: [u8; 8],
+    pub flag_regs: Box<[u8; 8]>,
+}
+
+impl Default for CPU {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 /// General Methods
@@ -112,15 +118,15 @@ impl CPU {
         Self {
             memory,
             stack: Box::new([0; 0x10]),
-            register: [0; 0x10],
+            register: Box::new([0; 0x10]),
             pc: 0x200, // All programs start from 0x200.
             sp: 0,
             i: 0,
             dt: 0,
             st: 0,
             vram: Box::new([0; 128 * 64]),
-            keypad: [false; 0x10],
-            flag_regs: [0; 8],
+            keypad: Box::new([false; 0x10]),
+            flag_regs: Box::new([0; 8]),
             is_halted: false,
             is_highres: false,
             load_store_quirk: false,
@@ -146,8 +152,7 @@ impl CPU {
     pub fn reset(&mut self) {
         // Clear only the non-reserved memory.
         self.memory[0x200..].iter_mut().for_each(|x| *x = 0);
-
-        self.register = [0; 0x10];
+        self.register.iter_mut().for_each(|x| *x = 0);
 
         self.pc = 0x200;
         self.sp = 0;
@@ -156,7 +161,7 @@ impl CPU {
         self.st = 0;
 
         self.vram.iter_mut().for_each(|x| *x = 0);
-        self.keypad = [false; 0x10];
+        self.keypad.iter_mut().for_each(|x| *x = false);
 
         self.is_halted = false;
         self.is_highres = false;
@@ -181,16 +186,16 @@ impl CPU {
     /// // Here we are just loading a stub.
     /// cpu.load_rom(&[0]);
     /// ```
-    pub fn load_rom(&mut self, buffer: &[u8]) -> Option<String> {
+    pub fn load_rom(&mut self, buffer: &[u8]) -> Result<(), String> {
         // Return an error, if bounds are exceeded.
         if buffer.len() > 3584 {
-            return Some("ROM\'s length is larger than the permitted 3584 bytes.".to_string());
+            return Err("ROM\'s length is larger than the permitted 3584 bytes.".to_string());
         }
 
         // Copy the ROM buffer.
         self.memory[0x200..0x200 + buffer.len()].copy_from_slice(&buffer);
 
-        None
+        Ok(())
     }
 
     /// Decrement the delay timer and sound timer if they are non-zero.
@@ -241,14 +246,14 @@ impl CPU {
     /// return the opcode that was fetched in the process.
     ///
     /// Currently if the CPU is halted as a result of a superchip
-    /// HALT opcode this function does nothing but return 0xFFFF.
-    pub fn execute_cycle(&mut self) -> u16 {
+    /// HALT opcode this function does nothing but return None.
+    pub fn execute_cycle(&mut self) -> Option<u16> {
         if self.is_halted {
-            return 0xFFFF;
+            return None;
         }
 
         // Fetch the opcode from memory.
-        let opcode = self.get_opcode();
+        let opcode = self.fetch_opcode();
         self.pc += 2;
 
         let bytes = opcode.to_be_bytes();
@@ -335,15 +340,10 @@ impl CPU {
             (0xF, _, 0x8, 0x5) => self.op_fx85(x),
 
             // Unknown/Invalid opcodes
-            _ => {}
+            _ => return None,
         }
 
-        opcode
-    }
-
-    /// Fetch the next opcode that is to be executed from the ROM.
-    fn get_opcode(&self) -> u16 {
-        u16::from_be_bytes([self.memory[self.pc], self.memory[self.pc + 1]])
+        Some(opcode)
     }
 
     /// Fetch the VRAM as a reference to a u8 slice.
@@ -352,12 +352,17 @@ impl CPU {
     }
 
     /// Get the current number of rows and columns as tuple.
-    pub fn get_row_col(&self) -> (usize, usize) {
+    pub fn get_height_width(&self) -> (usize, usize) {
         if self.is_highres {
             (64, 128)
         } else {
             (32, 64)
         }
+    }
+
+    /// Fetch the next opcode that is to be executed from the ROM.
+    fn fetch_opcode(&self) -> u16 {
+        u16::from_be_bytes([self.memory[self.pc], self.memory[self.pc + 1]])
     }
 }
 
@@ -534,7 +539,7 @@ impl CPU {
     /// Display n-byte sprite starting at memory location I at (Vx, Vy),
     /// set VF = collision.
     fn op_dxyn(&mut self, vx: usize, vy: usize, n: usize) {
-        let (rows, cols) = self.get_row_col();
+        let (rows, cols) = self.get_height_width();
 
         let x = self.register[vx] as usize;
         let y = self.register[vy] as usize;
@@ -673,7 +678,7 @@ impl CPU {
     /// 00Cn - SCD nibble  
     /// Scroll display N lines down.
     fn op_00cn(&mut self, n: u8) {
-        let (rows, cols) = self.get_row_col();
+        let (rows, cols) = self.get_height_width();
 
         // Get the number of rows that are retained.
         let retained = rows as u8 - n;
@@ -694,7 +699,7 @@ impl CPU {
     /// 00FB - SCR  
     /// Scroll display 4 pixels right.
     fn op_00fb(&mut self) {
-        let (rows, cols) = self.get_row_col();
+        let (rows, cols) = self.get_height_width();
 
         for row in 0..rows {
             let start = cols as usize * row as usize;
@@ -709,7 +714,7 @@ impl CPU {
     /// 00FC - SCL  
     /// Scroll display 4 pixels left.
     fn op_00fc(&mut self) {
-        let (rows, cols) = self.get_row_col();
+        let (rows, cols) = self.get_height_width();
 
         for row in 0..rows {
             let start = cols as usize * row as usize;
