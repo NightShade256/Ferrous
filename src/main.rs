@@ -57,6 +57,12 @@ fn main() {
     let lq = matches.is_present("load_store_quirk");
     let sq = matches.is_present("shift_quirk");
 
+    let cycles = matches
+        .value_of("cycles")
+        .unwrap_or("10")
+        .parse::<i32>()
+        .unwrap();
+
     // Read the ROM to an in memory buffer.
     let rom = std::fs::read(rom_path).unwrap();
 
@@ -76,5 +82,5 @@ fn main() {
         }
     }
 
-    emulator::start(cpu, 1000);
+    emulator::start(cpu, cycles);
 }
