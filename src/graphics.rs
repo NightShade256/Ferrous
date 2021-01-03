@@ -15,65 +15,89 @@ limitations under the License.
 */
 
 use ferrous_core::CPU;
-use sdl2::{pixels::Color, rect::Rect, render::Canvas, video::Window, Sdl};
 
-/// Holds the canvas for rendering to the screen.
+use glium::{
+    glutin::{dpi::LogicalSize, event_loop::EventLoop, window::WindowBuilder, ContextBuilder},
+    texture::{RawImage2d, Texture2d},
+    uniforms::MagnifySamplerFilter,
+    BlitTarget, Display, Surface,
+};
+
 pub struct Renderer {
-    canvas: Canvas<Window>,
+    /// OpenGL backed display.
+    pub display: Display,
+
+    /// RGB framebuffer for the display.
+    pub framebuffer: Box<[u8; 128 * 64 * 3]>,
 }
 
 impl Renderer {
-    /// Return a new `Renderer` instance.
-    pub fn new(context: &Sdl) -> Self {
-        let video_sys = context.video().unwrap();
-        let window = video_sys
-            .window("Oxidized Chip8", 640, 320)
-            .position_centered()
-            .resizable()
-            .build()
-            .unwrap();
+    /// Create a new `Ui` instance.
+    pub fn new(events_loop: &EventLoop<()>) -> Self {
+        let cb = ContextBuilder::new();
+        let wb = WindowBuilder::new()
+            .with_decorations(true)
+            .with_title("Ferrous Chip-8")
+            .with_min_inner_size(LogicalSize::new(128, 64))
+            .with_inner_size(LogicalSize::new(640, 320));
 
-        let mut canvas = window.into_canvas().accelerated().build().unwrap();
+        // Create Glium display.
+        let display = Display::new(wb, cb, events_loop).unwrap();
 
-        canvas.set_draw_color(Color::RGB(0, 0, 0));
-        canvas.clear();
-        canvas.present();
+        // Clear the screen.
+        let mut frame = display.draw();
+        frame.clear_color(0.0, 0.0, 0.0, 1.0);
+        frame.finish().unwrap();
 
-        Self { canvas }
+        Self {
+            display,
+            framebuffer: Box::new([0; 128 * 64 * 3]),
+        }
     }
 
-    /// Render the VRAM buffer onto the screen.
-    pub fn render(&mut self, cpu: &CPU) {
-        let (rows, cols) = cpu.get_height_width();
-        let (width, height) = self.canvas.window().size();
-        let buffer = cpu.get_video_buffer();
+    /// Render video memory onto the screen.
+    pub fn render_frame(&mut self, cpu: &CPU) {
+        // Prepare framebuffer for rendering.
+        self.prepare_framebuffer(cpu.get_video_buffer());
+        let (height, width) = cpu.get_height_width();
 
-        let (row_scale, col_scale) = if cpu.is_highres {
-            (width / 128, height / 64)
-        } else {
-            (width / 64, height / 32)
-        };
+        // Create texture.
+        let buffer_length = height * width * 3;
 
-        for row in 0..rows {
-            let offset = row as usize * cols as usize;
+        let image = RawImage2d::from_raw_rgb_reversed(
+            &self.framebuffer[..buffer_length],
+            (width as u32, height as u32),
+        );
 
-            for col in 0..cols {
-                let color = if buffer[offset + col as usize] == 0 {
-                    Color::RGB(0, 0, 0)
+        let texture = Texture2d::new(&self.display, image).unwrap();
+        let window_size = self.display.gl_window().window().inner_size();
+
+        // Blit the texture onto the screen.
+        let frame = self.display.draw();
+        texture.as_surface().blit_whole_color_to(
+            &frame,
+            &BlitTarget {
+                left: 0,
+                bottom: 0,
+                width: window_size.width as i32,
+                height: window_size.height as i32,
+            },
+            MagnifySamplerFilter::Nearest,
+        );
+        frame.finish().unwrap();
+    }
+
+    /// Convert the raw vram data to RGB.
+    fn prepare_framebuffer(&mut self, data: &[u8]) {
+        self.framebuffer
+            .chunks_exact_mut(3)
+            .enumerate()
+            .for_each(|(i, rgb)| {
+                if data[i] == 0 {
+                    rgb.copy_from_slice(&[0, 0, 0]);
                 } else {
-                    Color::RGB(255, 255, 255)
-                };
-
-                self.canvas.set_draw_color(color);
-
-                let x = (col as i32) * row_scale as i32;
-                let y = (row as i32) * col_scale as i32;
-
-                let rect = Rect::new(x, y, row_scale, col_scale);
-                self.canvas.fill_rect(rect).unwrap();
-            }
-        }
-
-        self.canvas.present();
+                    rgb.copy_from_slice(&[255, 255, 255]);
+                }
+            });
     }
 }

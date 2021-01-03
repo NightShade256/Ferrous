@@ -5,7 +5,7 @@ members = [
 
 [package]
 name = "ferrous-ch8"
-version = "0.2.2"
+version = "0.3.0"
 authors = ["Anish Jewalikar <anishjewalikar@gmail.com>"]
 edition = "2018"
 description = "A simple, full featured (super) Chip-8 interpreter."
@@ -14,9 +14,6 @@ readme = "README.md"
 repository = "https://github.com/NightShade256/oxidized-ch8"
 
 [dependencies]
-ferrous-core = { path = "./ferrous-core" }
 clap = "2.33"
-sdl2 = "0.34"
-
-[features]
-bundled = ["sdl2/bundled"]
+ferrous-core = { path = "./ferrous-core" }
+glium = "0.29"

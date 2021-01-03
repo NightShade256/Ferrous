@@ -14,20 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::{fs, thread::sleep, time::Duration};
-
 use clap::{App, Arg};
 use ferrous_core::CPU;
-use sdl2::{event::Event, keyboard::Keycode, EventPump};
 
-mod audio;
+mod emulator;
 mod graphics;
 
-/// Main entrypoint.
 fn main() {
-    let matches = App::new("Oxidized Chip8")
-        .version("0.2.1")
-        .about("A simple, accurate Chip8 emulator written in Rust.")
+    let matches = App::new("Ferrous Chip-8")
+        .version("0.3.0")
+        .about("A simple, accurate (super) Chip-8 emulator written in Rust.")
         .arg(
             Arg::with_name("file")
                 .help("The ROM file to execute")
@@ -35,13 +31,13 @@ fn main() {
                 .index(1),
         )
         .arg(
-            Arg::with_name("lsq")
+            Arg::with_name("load_store_quirk")
                 .help("Leave `I` unchanged in load/store instructions")
                 .short("l")
                 .long("load-store-quirk"),
         )
         .arg(
-            Arg::with_name("sfq")
+            Arg::with_name("shift_quirk")
                 .help("Ignore Vy in shift instructions")
                 .short("s")
                 .long("shift-quirk"),
@@ -55,111 +51,29 @@ fn main() {
         )
         .get_matches();
 
-    let path = matches.value_of("file").unwrap();
-    let lsq = matches.is_present("lsq");
-    let sfq = matches.is_present("sfq");
-    let rom = fs::read(path).unwrap();
+    // Parse CLI input.
+    let rom_path = matches.value_of("file").unwrap();
+    let lq = matches.is_present("load_store_quirk");
+    let sq = matches.is_present("shift_quirk");
 
-    // Initialize SDL.
-    let context = sdl2::init().unwrap();
-    let mut event_pump = context.event_pump().unwrap();
+    // Read the ROM to an in memory buffer.
+    let rom = std::fs::read(rom_path).unwrap();
 
-    // Create a new renderer and CPU.
-    let mut renderer = graphics::Renderer::new(&context);
-    let mut audio_handler = audio::Audio::new(&context);
+    // Create the CPU.
     let mut cpu = CPU::new();
 
-    // Enable/Disable quirks.
-    cpu.set_load_store(lsq);
-    cpu.set_shift(sfq);
+    // Configure quirks.
+    cpu.set_load_store(lq);
+    cpu.set_shift(sq);
 
-    let cycles_per_frame = matches
-        .value_of("cycles")
-        .unwrap_or("10")
-        .parse::<i32>()
-        .unwrap();
-
-    // Load the Chip8 ROM into memory.
     match cpu.load_rom(&rom) {
         Ok(_) => {}
+
         Err(error) => {
             eprintln!("{}", error);
             return;
         }
     }
 
-    'main: loop {
-        // This gets called 10 times per frame,
-        // thus yielding 600 cycles per second.
-        for _ in 0..cycles_per_frame {
-            cpu.execute_cycle();
-        }
-
-        // Step the sound and delay timers.
-        cpu.step_timers();
-
-        // Handle input, and events.
-        match handle_events(&mut event_pump, &mut cpu) {
-            Ok(_) => {}
-            Err(_) => break 'main,
-        }
-
-        // Start/Stop beep.
-        if cpu.st > 0 {
-            audio_handler.start_beep();
-        } else {
-            audio_handler.stop_beep();
-        }
-
-        // Render the current frame.
-        renderer.render(&cpu);
-
-        // Sleep for 16.67 ms.
-        sleep(Duration::from_secs_f64(1.0 / 60.0));
-    }
-}
-
-/// Handle keyboard input, and Window quit events.
-fn handle_events(event_pump: &mut EventPump, cpu: &mut CPU) -> Result<(), ()> {
-    for event in event_pump.poll_iter() {
-        if let Event::Quit { .. } = event {
-            return Err(());
-        }
-    }
-
-    cpu.reset_keys();
-
-    let keys: Vec<Keycode> = event_pump
-        .keyboard_state()
-        .pressed_scancodes()
-        .filter_map(Keycode::from_scancode)
-        .collect();
-
-    for key in keys {
-        let index = match key {
-            Keycode::Num1 => Some(0x1),
-            Keycode::Num2 => Some(0x2),
-            Keycode::Num3 => Some(0x3),
-            Keycode::Num4 => Some(0xC),
-            Keycode::Q => Some(0x4),
-            Keycode::W => Some(0x5),
-            Keycode::E => Some(0x6),
-            Keycode::R => Some(0xD),
-            Keycode::A => Some(0x7),
-            Keycode::S => Some(0x8),
-            Keycode::D => Some(0x9),
-            Keycode::F => Some(0xE),
-            Keycode::Z => Some(0xA),
-            Keycode::X => Some(0x0),
-            Keycode::C => Some(0xB),
-            Keycode::V => Some(0xF),
-            _ => None,
-        };
-
-        if let Some(i) = index {
-            cpu.set_key_at_index(i, true);
-        }
-    }
-
-    Ok(())
+    emulator::start(cpu, 1000);
 }
