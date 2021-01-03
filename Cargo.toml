@@ -17,3 +17,4 @@ repository = "https://github.com/NightShade256/oxidized-ch8"
 clap = "2.33"
 ferrous-core = { path = "./ferrous-core" }
 glium = "0.29"
+rodio = "0.13"

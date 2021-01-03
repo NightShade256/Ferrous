@@ -23,15 +23,17 @@ use glium::glutin::{
     event_loop::ControlFlow,
 };
 
-use crate::graphics;
+use crate::{audio, graphics};
 
 /// Start the emulator, and run until the user quits.
 pub fn start(mut cpu: CPU, inst_per_frame: i32) {
     // Create the event loop.
     let events_loop = glium::glutin::event_loop::EventLoop::new();
 
-    // Initialize the window, and the renderer.
+    // Initialize the window, the renderer and audio system.
+    let audio_system = audio::Audio::new();
     let mut renderer = graphics::Renderer::new(&events_loop);
+
     let mut next_time = Instant::now() + Duration::from_secs_f64(1.0 / 60.0);
 
     events_loop.run(move |event, _, control_flow| match event {
@@ -53,6 +55,12 @@ pub fn start(mut cpu: CPU, inst_per_frame: i32) {
             // Step timers, and execute the required cycles.
             for _ in 0..inst_per_frame {
                 cpu.execute_cycle().unwrap();
+            }
+
+            if cpu.st > 0 {
+                audio_system.start_beep();
+            } else {
+                audio_system.pause_beep();
             }
 
             cpu.step_timers();

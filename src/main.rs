@@ -17,6 +17,7 @@ limitations under the License.
 use clap::{App, Arg};
 use ferrous_core::CPU;
 
+mod audio;
 mod emulator;
 mod graphics;
 
