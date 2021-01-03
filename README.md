@@ -10,7 +10,7 @@ The project is divided into two parts,
    of the (super) Chip-8 interpreter.
 
 2. The `ferrous-ch8` frontend crate which augments the core crate by constructing
-   a frontend with the help of SDL 2.
+   a frontend with the help of OpenGL (glium).
 
 You can use the core crate in your own interpreters and build a frontend. It is fully
 documented and you shouldn't have a problem.
@@ -19,19 +19,13 @@ documented and you shouldn't have a problem.
 
 You can build the interpreter through `cargo`.
 
-To do so, you will require a `Rust` toolchain for your platform, CMake and
-a working `C` compiler.
+To do so, you will require a `Rust` toolchain for your platform.
 
 ```bash
-# This will build SDL 2 along with the interpreter.
-# If you have SDL 2 development headers/library already
-# installed you can drop the 'bundled' feature.
-cargo build --release --features "bundled"
+cargo build --release
 ```
 
 The binary will be stored in `target/release` copy that to a suitable location.
-If you are on Windows, copy the `SDL2.dll` from `bin` to the same directory
-as above.
 
 ## Usage
 
