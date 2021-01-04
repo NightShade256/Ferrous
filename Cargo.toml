@@ -14,7 +14,6 @@ readme = "README.md"
 repository = "https://github.com/NightShade256/oxidized-ch8"
 
 [dependencies]
-clap = "2.33"
 ferrous-core = { path = "./ferrous-core" }
 glium = "0.29"
 image = "0.23"
