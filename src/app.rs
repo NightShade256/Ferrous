@@ -311,6 +311,19 @@ impl Application {
                 MenuItem::new(im_str!("FPS Overlay"))
                     .build_with_ref(&ui, &mut self.fps_overlay);
 
+                if let Some(quirks_menu) =
+                    ui.begin_menu(im_str!("Quirk Settings"), true)
+                {
+                    MenuItem::new(im_str!("Shift Quirk"))
+                        .build_with_ref(&ui, &mut self.cpu.shift_quirk);
+                    MenuItem::new(im_str!("Load and Store Quirk"))
+                        .build_with_ref(&ui, &mut self.cpu.load_store_quirk);
+                    MenuItem::new(im_str!("Jump Quirk"))
+                        .build_with_ref(&ui, &mut self.cpu.jump_quirk);
+
+                    quirks_menu.end(&ui);
+                }
+
                 emu_menu.end(&ui);
             }
 
