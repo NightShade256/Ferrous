@@ -136,7 +136,7 @@ impl CPU {
     }
 
     /// Reset the interpreter to its initial state.
-    /// Flag Registers are persistent even after a reset.
+    /// Flag Registers & Quirks are persistent even after a reset.
     ///
     /// # Example
     ///
@@ -165,9 +165,6 @@ impl CPU {
 
         self.is_halted = false;
         self.is_highres = false;
-        self.load_store_quirk = false;
-        self.shift_quirk = false;
-        self.jump_quirk = false;
     }
 
     /// Load a ROM into the working memory thus finalizing for execution.
