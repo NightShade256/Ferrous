@@ -53,6 +53,13 @@ By default though,
 1. Shift instructions place value of Vy into Vx and then shift.
 2. Load/Store instructions increment `I`.
 
+## Note
+
+The Rust logo is used as a window icon, and hence distributed with this repository.
+The unmodified logo is used as per the terms found [here](https://github.com/rust-lang/rust-artwork).
+
+This project is not affiliated to, or endorsed by the Rust project.
+
 ## License
 
 The project is licensed under the terms of the Apache-2.0 license.
