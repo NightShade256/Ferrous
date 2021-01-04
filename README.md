@@ -10,10 +10,19 @@ The project is divided into two parts,
    of the (super) Chip-8 interpreter.
 
 2. The `ferrous-ch8` frontend crate which augments the core crate by constructing
-   a frontend with the help of OpenGL (glium).
+   a frontend with the help of Dear ImGui.
 
 You can use the core crate in your own interpreters and build a frontend. It is fully
 documented and you shouldn't have a problem.
+
+## Features
+
+1. Allows tweaking quirks for accurate emulation.
+
+2. Written in pure Rust, achieving great performance.
+
+3. Ability to dynamically change FG, BG colours, cycles per frame
+   and view FPS.
 
 ## Building
 
@@ -26,14 +35,6 @@ cargo build --release
 ```
 
 The binary will be stored in `target/release` copy that to a suitable location.
-
-## Usage
-
-See the CLI help page.
-
-```bash
-./ferrous-ch8 -h
-```
 
 ## Implementation Details
 

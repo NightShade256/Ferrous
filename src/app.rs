@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use std::path::PathBuf;
+
 use ferrous_core::CPU;
 
 use glium::{
@@ -32,7 +34,21 @@ use imgui::{
     im_str, ColorEdit, FontConfig, FontSource, MenuItem, Slider, Window,
 };
 
-pub struct Renderer {
+mod file_dialog;
+
+pub struct Application {
+    /// Chip8 CPU
+    pub cpu: ferrous_core::CPU,
+
+    // File Dialog Handler
+    pub file_dialog: file_dialog::FileDialog,
+
+    // Current ROM,
+    pub rom: Option<PathBuf>,
+
+    // Is the interpreter running?
+    pub running: bool,
+
     /// OpenGL backed display.
     pub display: Display,
 
@@ -51,7 +67,7 @@ pub struct Renderer {
     /// Height taken up by the main menu bar.
     pub menu_height: Option<u32>,
 
-    pub large_font_id: imgui::FontId,
+    pub larger_font: imgui::FontId,
 
     // ----- State ----- //
     /// Is the about window currently opened?
@@ -76,7 +92,7 @@ pub struct Renderer {
     pub cycles_per_frame: u16,
 }
 
-impl Renderer {
+impl Application {
     /// Create a new `Ui` instance.
     pub fn new(events_loop: &EventLoop<()>) -> Self {
         let image = image::load_from_memory_with_format(
@@ -142,12 +158,16 @@ impl Renderer {
             imgui_glium_renderer::Renderer::init(&mut imgui, &display).unwrap();
 
         Self {
+            cpu: CPU::new(),
+            file_dialog: file_dialog::FileDialog::new(),
+            rom: None,
+            running: false,
             display,
             framebuffer: Box::new([0; 128 * 64 * 3]),
             imgui,
             platform,
             renderer,
-            large_font_id: font_id,
+            larger_font: font_id,
             about_window: false,
             metrics_window: false,
             pallete_window: false,
@@ -160,10 +180,10 @@ impl Renderer {
     }
 
     /// Render video memory onto the screen.
-    pub fn render_frame(&mut self, cpu: &CPU) {
+    pub fn render_frame(&mut self) {
         // Prepare framebuffer for rendering.
-        self.prepare_framebuffer(cpu.get_video_buffer());
-        let (height, width) = cpu.get_height_width();
+        self.prepare_framebuffer();
+        let (height, width) = self.cpu.get_height_width();
 
         // Create texture.
         let buffer_length = height * width * 3;
@@ -197,7 +217,9 @@ impl Renderer {
     }
 
     /// Convert the raw vram data to RGB.
-    fn prepare_framebuffer(&mut self, data: &[u8]) {
+    fn prepare_framebuffer(&mut self) {
+        let data = self.cpu.get_video_buffer();
+
         let fg = self
             .fg_color
             .iter()
@@ -226,12 +248,53 @@ impl Renderer {
         let frame_count = self.imgui.frame_count();
         let global_time = self.imgui.time();
 
+        if self.file_dialog.is_open && !self.running {
+            let result = self.file_dialog.query_result();
+
+            if let file_dialog::DialogResult::RomFile(path) = result {
+                self.rom = Some(path);
+            }
+        }
+
         let ui = self.imgui.frame();
         let gl_window = self.display.gl_window();
 
         // --- Main Menu Bar --- //
         if let Some(main_menu) = ui.begin_main_menu_bar() {
+            if let Some(file_menu) = ui.begin_menu(im_str!("File"), true) {
+                if MenuItem::new(im_str!("Open ROM")).build(&ui)
+                    && !self.file_dialog.is_open
+                {
+                    self.running = false;
+                    self.cpu.reset();
+
+                    self.file_dialog.create_rom_dialog();
+                }
+
+                file_menu.end(&ui);
+            }
+
             if let Some(emu_menu) = ui.begin_menu(im_str!("Emulation"), true) {
+                if MenuItem::new(im_str!("Start"))
+                    .enabled(!self.running && self.rom.is_some())
+                    .build(&ui)
+                {
+                    // Load ROM and start.
+                    let rom =
+                        std::fs::read(self.rom.as_ref().unwrap()).unwrap();
+                    self.cpu.load_rom(&rom).unwrap();
+
+                    self.running = true;
+                }
+
+                if MenuItem::new(im_str!("Stop"))
+                    .enabled(self.running)
+                    .build(&ui)
+                {
+                    self.cpu.reset();
+                    self.running = false;
+                }
+
                 if let Some(cycles_menu) =
                     ui.begin_menu(im_str!("Cycles/Frame"), true)
                 {
@@ -266,7 +329,7 @@ impl Renderer {
 
         // --- Windows --- //
         if self.about_window {
-            let font_id = self.large_font_id;
+            let font_id = self.larger_font;
 
             Window::new(im_str!("About"))
                 .bg_alpha(1.0)

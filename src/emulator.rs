@@ -23,17 +23,16 @@ use glium::glutin::{
     event_loop::ControlFlow,
 };
 
-use crate::{audio, graphics};
+use crate::{app, audio};
 
 /// Start the emulator, and run until the user quits.
-pub fn start(mut cpu: CPU, inst_per_frame: u16) {
+pub fn start() {
     // Create the event loop.
     let events_loop = glium::glutin::event_loop::EventLoop::new();
 
     // Initialize the window, the renderer and audio system.
     let audio_system = audio::Audio::new();
-    let mut renderer = graphics::Renderer::new(&events_loop);
-    renderer.cycles_per_frame = inst_per_frame;
+    let mut app = app::Application::new(&events_loop);
 
     let mut last_time = Instant::now();
     let mut next_time = Instant::now() + Duration::from_secs_f64(1.0 / 60.0);
@@ -44,16 +43,15 @@ pub fn start(mut cpu: CPU, inst_per_frame: u16) {
                 let now = Instant::now();
                 next_time += Duration::from_secs_f64(1.0 / 60.0);
 
-                renderer.imgui.io_mut().update_delta_time(now - last_time);
+                app.imgui.io_mut().update_delta_time(now - last_time);
                 last_time = now;
             }
 
             Event::MainEventsCleared => {
-                let gl_window = renderer.display.gl_window();
+                let gl_window = app.display.gl_window();
 
-                renderer
-                    .platform
-                    .prepare_frame(renderer.imgui.io_mut(), gl_window.window())
+                app.platform
+                    .prepare_frame(app.imgui.io_mut(), gl_window.window())
                     .unwrap();
 
                 gl_window.window().request_redraw();
@@ -61,26 +59,28 @@ pub fn start(mut cpu: CPU, inst_per_frame: u16) {
 
             Event::RedrawRequested(_) => {
                 // Exit if the CPU encountered a Super Chip exit instruction.
-                if cpu.is_halted {
-                    *control_flow = ControlFlow::Exit;
-                    return;
+                if app.cpu.is_halted && app.running {
+                    app.running = false;
+                    app.cpu.reset();
                 }
 
-                // Step timers, and execute the required cycles.
-                for _ in 0..renderer.cycles_per_frame {
-                    cpu.execute_cycle().unwrap();
+                if app.running {
+                    // Step timers, and execute the required cycles.
+                    for _ in 0..app.cycles_per_frame {
+                        app.cpu.execute_cycle().unwrap();
+                    }
                 }
 
-                if cpu.st > 0 {
+                if app.cpu.st > 0 {
                     audio_system.start_beep();
                 } else {
                     audio_system.pause_beep();
                 }
 
-                cpu.step_timers();
+                app.cpu.step_timers();
 
                 // Render the framebuffer.
-                renderer.render_frame(&cpu);
+                app.render_frame();
             }
 
             // Limit framerate to 60 frames per second.
@@ -97,8 +97,8 @@ pub fn start(mut cpu: CPU, inst_per_frame: u16) {
                 WindowEvent::CloseRequested | WindowEvent::Destroyed => {
                     *control_flow = ControlFlow::Exit
                 }
-                WindowEvent::KeyboardInput { input, .. } => {
-                    handle_keyboard_event(&mut cpu, input)
+                WindowEvent::KeyboardInput { input, .. } if app.running => {
+                    handle_keyboard_event(&mut app.cpu, input)
                 }
                 _ => {}
             },
@@ -106,9 +106,9 @@ pub fn start(mut cpu: CPU, inst_per_frame: u16) {
             _ => {}
         }
 
-        let gl_window = renderer.display.gl_window();
-        renderer.platform.handle_event(
-            renderer.imgui.io_mut(),
+        let gl_window = app.display.gl_window();
+        app.platform.handle_event(
+            app.imgui.io_mut(),
             gl_window.window(),
             &event,
         );

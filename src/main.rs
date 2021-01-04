@@ -14,78 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use clap::{App, Arg};
-use ferrous_core::CPU;
-
+mod app;
 mod audio;
 mod emulator;
-mod graphics;
 
 fn main() {
-    let matches = App::new("Ferrous Chip-8")
-        .version("0.3.0")
-        .about("A simple, accurate (super) Chip-8 emulator written in Rust.")
-        .arg(
-            Arg::with_name("file")
-                .help("The ROM file to execute")
-                .required(true)
-                .index(1),
-        )
-        .arg(
-            Arg::with_name("load_store_quirk")
-                .help("Leave `I` unchanged in load/store instructions")
-                .short("l")
-                .long("load-store-quirk"),
-        )
-        .arg(
-            Arg::with_name("shift_quirk")
-                .help("Ignore Vy in shift instructions")
-                .short("s")
-                .long("shift-quirk"),
-        )
-        .arg(
-            Arg::with_name("cycles")
-                .help("Number of cycles to execute per frame")
-                .short("c")
-                .help("cycles")
-                .takes_value(true),
-        )
-        .get_matches();
-
-    // Parse CLI input.
-    let rom_path = matches.value_of("file").unwrap();
-    let lq = matches.is_present("load_store_quirk");
-    let sq = matches.is_present("shift_quirk");
-
-    let cycles = matches
-        .value_of("cycles")
-        .unwrap_or("10")
-        .parse::<u16>()
-        .unwrap();
-
-    if cycles > 2000 {
-        eprintln!("CPF >2000 is not supported.");
-        return;
-    }
-
-    // Read the ROM to an in memory buffer.
-    let rom = std::fs::read(rom_path).unwrap();
-
-    // Create the CPU.
-    let mut cpu = CPU::new();
-
-    // Configure quirks.
-    cpu.set_load_store(lq);
-    cpu.set_shift(sq);
-
-    match cpu.load_rom(&rom) {
-        Ok(_) => {}
-
-        Err(error) => {
-            eprintln!("{}", error);
-            return;
-        }
-    }
-
-    emulator::start(cpu, cycles);
+    emulator::start();
 }
