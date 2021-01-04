@@ -60,8 +60,13 @@ fn main() {
     let cycles = matches
         .value_of("cycles")
         .unwrap_or("10")
-        .parse::<i32>()
+        .parse::<u16>()
         .unwrap();
+
+    if cycles > 2000 {
+        eprintln!("CPF >2000 is not supported.");
+        return;
+    }
 
     // Read the ROM to an in memory buffer.
     let rom = std::fs::read(rom_path).unwrap();
