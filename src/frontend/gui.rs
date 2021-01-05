@@ -50,10 +50,10 @@ pub struct Application {
     // File Dialog Handler
     pub file_dialog: file_dialog::FileDialog,
 
-    // Current ROM,
+    // Current ROM.
     pub rom: Option<PathBuf>,
 
-    // The interpreters current state.
+    // The interpreter's current state.
     pub state: State,
 
     /// OpenGL backed display.
@@ -74,9 +74,11 @@ pub struct Application {
     /// Height taken up by the main menu bar.
     pub menu_height: Option<u32>,
 
-    pub larger_font: imgui::FontId,
+    /// Font Id of the 21 px font.
+    pub large_font: imgui::FontId,
 
-    pub audio: audio::Audio,
+    /// The audio subsystem.
+    pub audio_system: audio::Audio,
 
     // ----- State ----- //
     /// Is the about window currently opened?
@@ -102,7 +104,7 @@ impl Application {
     /// Create a new `Application` instance.
     pub fn new(events_loop: &EventLoop<()>) -> Self {
         let image = image::load_from_memory_with_format(
-            include_bytes!("../images/rust-logo-64x64.png"),
+            include_bytes!("../assets/rust-logo-64x64.png"),
             image::ImageFormat::Png,
         )
         .unwrap()
@@ -173,8 +175,8 @@ impl Application {
             imgui,
             platform,
             renderer,
-            audio: audio::Audio::new(),
-            larger_font: font_id,
+            audio_system: audio::Audio::new(),
+            large_font: font_id,
             about_window: false,
             metrics_window: false,
             pallete_window: false,
@@ -249,14 +251,19 @@ impl Application {
         );
     }
 
+    /// Query the result of the file dialog.
+    fn query_file_dialog(&mut self) {
+        let result = self.file_dialog.query_result();
+
+        if let file_dialog::DialogResult::RomFile(path) = result {
+            self.rom = Some(path);
+        }
+    }
+
     /// Render Ui built with Dear ImGui.
     fn render_ui(&mut self, frame: &mut glium::Frame) {
         if self.file_dialog.is_open && self.state == State::Idle {
-            let result = self.file_dialog.query_result();
-
-            if let file_dialog::DialogResult::RomFile(path) = result {
-                self.rom = Some(path);
-            }
+            self.query_file_dialog();
         }
 
         let ui = self.imgui.frame();
@@ -270,7 +277,7 @@ impl Application {
                 {
                     self.state = State::Idle;
                     self.cpu.reset();
-
+                    self.audio_system.pause_beep();
                     self.file_dialog.create_rom_dialog();
                 }
 
@@ -295,18 +302,23 @@ impl Application {
 
                 if MenuItem::new(im_str!("Pause"))
                     .enabled(self.state == State::Running)
-                    .build(&ui) {
-                        self.state = State::Paused;
-                        self.audio.pause_beep();
-                    }
+                    .build(&ui)
+                {
+                    self.state = State::Paused;
+                    self.audio_system.pause_beep();
+                }
 
                 if MenuItem::new(im_str!("Stop"))
                     .enabled(self.state != State::Idle)
                     .build(&ui)
                 {
-                    self.cpu.reset();
                     self.state = State::Idle;
+                    self.cpu.reset();
+                    self.audio_system.pause_beep();
                 }
+
+                MenuItem::new(im_str!("Pallete"))
+                    .build_with_ref(&ui, &mut self.pallete_window);
 
                 if let Some(cycles_menu) =
                     ui.begin_menu(im_str!("Cycles per Frame"), true)
@@ -318,9 +330,6 @@ impl Application {
 
                     cycles_menu.end(&ui);
                 }
-
-                MenuItem::new(im_str!("Pallete"))
-                    .build_with_ref(&ui, &mut self.pallete_window);
 
                 if let Some(quirks_menu) =
                     ui.begin_menu(im_str!("Quirk Settings"), true)
@@ -353,7 +362,7 @@ impl Application {
 
         // --- Windows --- //
         if self.about_window {
-            let font_id = self.larger_font;
+            let font_id = self.large_font;
 
             Window::new(im_str!("About"))
                 .bg_alpha(1.0)

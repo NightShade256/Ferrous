@@ -63,6 +63,7 @@ pub fn start() {
                 if app.cpu.is_halted && app.state != gui::State::Idle {
                     app.state = gui::State::Idle;
                     app.cpu.reset();
+                    app.audio_system.pause_beep();
                 }
 
                 if app.state == gui::State::Running {
@@ -72,9 +73,9 @@ pub fn start() {
                     }
 
                     if app.cpu.st > 0 {
-                        app.audio.start_beep();
+                        app.audio_system.start_beep();
                     } else {
-                        app.audio.pause_beep();
+                        app.audio_system.pause_beep();
                     }
 
                     app.cpu.step_timers();
