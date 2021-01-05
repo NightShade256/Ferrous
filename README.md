@@ -51,14 +51,15 @@ load/store and shift instructions as described [here](https://chip-8.github.io/d
 By default though,
 
 1. Shift instructions place value of Vy into Vx and then shift.
-2. Load/Store instructions increment `I`.
+2. Load and Store instructions increment `I` register.
+3. Jump instruction `BNNN` will not factor in the 2nd nibble for
+   selecting the register to add to `NNN`.
 
 ## Note
 
-The Rust logo is used as a window icon, and hence distributed with this repository.
-The unmodified logo is used as per the terms found [here](https://github.com/rust-lang/rust-artwork).
-
-This project is not affiliated to, or endorsed by the Rust project.
+The Rust logo is used in this project as the window icon. It is used unmodified under the
+terms listed [here](https://github.com/rust-lang/rust-artwork). This project is not affiliated to, nor
+endorsed by the Rust project.
 
 ## License
 
