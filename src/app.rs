@@ -93,7 +93,7 @@ pub struct Application {
 }
 
 impl Application {
-    /// Create a new `Ui` instance.
+    /// Create a new `Application` instance.
     pub fn new(events_loop: &EventLoop<()>) -> Self {
         let image = image::load_from_memory_with_format(
             include_bytes!("./images/rust-logo-64x64.png"),
