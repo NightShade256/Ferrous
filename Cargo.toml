@@ -22,3 +22,6 @@ imgui-glium-renderer = "0.6"
 imgui-winit-support = "0.6"
 nfd2 = "0.2"
 rodio = "0.13"
+
+[profile.release]
+lto = "fat"

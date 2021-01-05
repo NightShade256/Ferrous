@@ -14,10 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-mod app;
-mod audio;
-mod emulator;
+mod frontend;
 
 fn main() {
-    emulator::start();
+    frontend::start();
 }

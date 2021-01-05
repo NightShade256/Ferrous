@@ -23,7 +23,9 @@ use glium::glutin::{
     event_loop::ControlFlow,
 };
 
-use crate::{app, audio};
+mod audio;
+mod file_dialog;
+mod gui;
 
 /// Start the emulator, and run until the user quits.
 pub fn start() {
@@ -31,8 +33,7 @@ pub fn start() {
     let events_loop = glium::glutin::event_loop::EventLoop::new();
 
     // Initialize the window, the renderer and audio system.
-    let audio_system = audio::Audio::new();
-    let mut app = app::Application::new(&events_loop);
+    let mut app = gui::Application::new(&events_loop);
 
     let mut last_time = Instant::now();
     let mut next_time = Instant::now() + Duration::from_secs_f64(1.0 / 60.0);
@@ -59,25 +60,25 @@ pub fn start() {
 
             Event::RedrawRequested(_) => {
                 // Exit if the CPU encountered a Super Chip exit instruction.
-                if app.cpu.is_halted && app.running {
-                    app.running = false;
+                if app.cpu.is_halted && app.state != gui::State::Idle {
+                    app.state = gui::State::Idle;
                     app.cpu.reset();
                 }
 
-                if app.running {
+                if app.state == gui::State::Running {
                     // Step timers, and execute the required cycles.
                     for _ in 0..app.cycles_per_frame {
                         app.cpu.execute_cycle().unwrap();
                     }
-                }
 
-                if app.cpu.st > 0 {
-                    audio_system.start_beep();
-                } else {
-                    audio_system.pause_beep();
-                }
+                    if app.cpu.st > 0 {
+                        app.audio.start_beep();
+                    } else {
+                        app.audio.pause_beep();
+                    }
 
-                app.cpu.step_timers();
+                    app.cpu.step_timers();
+                }
 
                 // Render the framebuffer.
                 app.render_frame();
@@ -97,7 +98,9 @@ pub fn start() {
                 WindowEvent::CloseRequested | WindowEvent::Destroyed => {
                     *control_flow = ControlFlow::Exit
                 }
-                WindowEvent::KeyboardInput { input, .. } if app.running => {
+                WindowEvent::KeyboardInput { input, .. }
+                    if app.state == gui::State::Running =>
+                {
                     handle_keyboard_event(&mut app.cpu, input)
                 }
                 _ => {}

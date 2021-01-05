@@ -34,7 +34,14 @@ use imgui::{
     im_str, ColorEdit, FontConfig, FontSource, MenuItem, Slider, Window,
 };
 
-mod file_dialog;
+use super::{audio, file_dialog};
+
+#[derive(PartialEq)]
+pub enum State {
+    Idle,
+    Paused,
+    Running,
+}
 
 pub struct Application {
     /// Chip8 CPU
@@ -46,8 +53,8 @@ pub struct Application {
     // Current ROM,
     pub rom: Option<PathBuf>,
 
-    // Is the interpreter running?
-    pub running: bool,
+    // The interpreters current state.
+    pub state: State,
 
     /// OpenGL backed display.
     pub display: Display,
@@ -69,6 +76,8 @@ pub struct Application {
 
     pub larger_font: imgui::FontId,
 
+    pub audio: audio::Audio,
+
     // ----- State ----- //
     /// Is the about window currently opened?
     pub about_window: bool,
@@ -78,9 +87,6 @@ pub struct Application {
 
     /// Is the color picker active?
     pub pallete_window: bool,
-
-    /// Is the FPS overlay active?
-    pub fps_overlay: bool,
 
     /// Draw Color
     pub fg_color: [f32; 3],
@@ -96,7 +102,7 @@ impl Application {
     /// Create a new `Application` instance.
     pub fn new(events_loop: &EventLoop<()>) -> Self {
         let image = image::load_from_memory_with_format(
-            include_bytes!("./images/rust-logo-64x64.png"),
+            include_bytes!("../images/rust-logo-64x64.png"),
             image::ImageFormat::Png,
         )
         .unwrap()
@@ -161,17 +167,17 @@ impl Application {
             cpu: CPU::new(),
             file_dialog: file_dialog::FileDialog::new(),
             rom: None,
-            running: false,
+            state: State::Idle,
             display,
             framebuffer: Box::new([0; 128 * 64 * 3]),
             imgui,
             platform,
             renderer,
+            audio: audio::Audio::new(),
             larger_font: font_id,
             about_window: false,
             metrics_window: false,
             pallete_window: false,
-            fps_overlay: false,
             menu_height: None,
             fg_color: [1.0; 3],
             bg_color: [0.0; 3],
@@ -245,10 +251,7 @@ impl Application {
 
     /// Render Ui built with Dear ImGui.
     fn render_ui(&mut self, frame: &mut glium::Frame) {
-        let frame_count = self.imgui.frame_count();
-        let global_time = self.imgui.time();
-
-        if self.file_dialog.is_open && !self.running {
+        if self.file_dialog.is_open && self.state == State::Idle {
             let result = self.file_dialog.query_result();
 
             if let file_dialog::DialogResult::RomFile(path) = result {
@@ -265,7 +268,7 @@ impl Application {
                 if MenuItem::new(im_str!("Open ROM")).build(&ui)
                     && !self.file_dialog.is_open
                 {
-                    self.running = false;
+                    self.state = State::Idle;
                     self.cpu.reset();
 
                     self.file_dialog.create_rom_dialog();
@@ -276,29 +279,39 @@ impl Application {
 
             if let Some(emu_menu) = ui.begin_menu(im_str!("Emulation"), true) {
                 if MenuItem::new(im_str!("Start"))
-                    .enabled(!self.running && self.rom.is_some())
+                    .enabled(self.state != State::Running && self.rom.is_some())
                     .build(&ui)
                 {
-                    // Load ROM and start.
-                    let rom =
-                        std::fs::read(self.rom.as_ref().unwrap()).unwrap();
-                    self.cpu.load_rom(&rom).unwrap();
+                    if self.state == State::Idle {
+                        // Load ROM and start.
+                        let rom =
+                            std::fs::read(self.rom.as_ref().unwrap()).unwrap();
 
-                    self.running = true;
+                        self.cpu.load_rom(&rom).unwrap();
+                    }
+
+                    self.state = State::Running;
                 }
 
+                if MenuItem::new(im_str!("Pause"))
+                    .enabled(self.state == State::Running)
+                    .build(&ui) {
+                        self.state = State::Paused;
+                        self.audio.pause_beep();
+                    }
+
                 if MenuItem::new(im_str!("Stop"))
-                    .enabled(self.running)
+                    .enabled(self.state != State::Idle)
                     .build(&ui)
                 {
                     self.cpu.reset();
-                    self.running = false;
+                    self.state = State::Idle;
                 }
 
                 if let Some(cycles_menu) =
-                    ui.begin_menu(im_str!("Cycles/Frame"), true)
+                    ui.begin_menu(im_str!("Cycles per Frame"), true)
                 {
-                    Slider::<u16>::new(im_str!("Cycles"))
+                    Slider::<u16>::new(im_str!("cycles"))
                         .range(1..=2000)
                         .flags(imgui::SliderFlags::ALWAYS_CLAMP)
                         .build(&ui, &mut self.cycles_per_frame);
@@ -308,8 +321,6 @@ impl Application {
 
                 MenuItem::new(im_str!("Pallete"))
                     .build_with_ref(&ui, &mut self.pallete_window);
-                MenuItem::new(im_str!("FPS Overlay"))
-                    .build_with_ref(&ui, &mut self.fps_overlay);
 
                 if let Some(quirks_menu) =
                     ui.begin_menu(im_str!("Quirk Settings"), true)
@@ -350,7 +361,7 @@ impl Application {
                 .opened(&mut self.about_window)
                 .build(&ui, || {
                     let token = ui.push_font(font_id);
-                    ui.text_colored([0.58, 0.23, 0.09, 1.0], im_str!("Ferrous Chip-8"));
+                    ui.text_colored([0.6, 0.25, 0.1, 1.0], im_str!("Ferrous Chip-8"));
                     token.pop(&ui);
 
                     ui.text(im_str!(
@@ -392,24 +403,6 @@ impl Application {
                 .format(imgui::ColorFormat::U8)
                 .alpha(false)
                 .build(&ui);
-
-                window.end(&ui);
-            }
-        }
-
-        if self.fps_overlay {
-            if let Some(window) = Window::new(im_str!("FPS"))
-                .no_decoration()
-                .bg_alpha(1.0)
-                .begin(&ui)
-            {
-                ui.text_colored(
-                    [0.0, 1.0, 0.0, 1.0],
-                    im_str!(
-                        "FPS (approx): {:.2}",
-                        ((frame_count - 1) as f64 / global_time)
-                    ),
-                );
 
                 window.end(&ui);
             }
