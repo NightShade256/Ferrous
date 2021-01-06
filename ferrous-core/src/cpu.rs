@@ -17,6 +17,9 @@ limitations under the License.
 //! Contains a simple and full featured implementation
 //! of a (super) Chip-8 interpreter.
 
+#[cfg(feature = "savestates")]
+use serde::{Deserialize, Serialize};
+
 use crate::font::*;
 
 /// Implementation of a (super) Chip-8 interpreter.
@@ -31,10 +34,11 @@ use crate::font::*;
 /// // Load ROM, handle display, audio and input.
 /// ```
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "savestates", derive(Serialize, Deserialize))]
 pub struct CPU {
     /// Working RAM of the CPU.
     /// 4 KB in size.
-    pub memory: Box<[u8; 0x1000]>,
+    pub memory: Box<[u8]>,
 
     /// Return address stack.
     pub stack: Box<[u16; 0x10]>,
@@ -65,7 +69,7 @@ pub struct CPU {
     /// screen.
     /// Each byte represents an individual pixel, where 1 means ON (White)
     /// and 0 means OFF (Black).
-    pub vram: Box<[u8; 128 * 64]>,
+    pub vram: Box<[u8]>,
 
     /// Keypad Representation; Conveys whether a key is pressed (true) or not pressed
     /// (false) currently.
