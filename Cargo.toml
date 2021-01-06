@@ -5,23 +5,23 @@ members = [
 
 [package]
 name = "ferrous-ch8"
-version = "0.3.0"
+version = "1.0.0"
 authors = ["Anish Jewalikar <anishjewalikar@gmail.com>"]
 edition = "2018"
 description = "A simple, full featured (super) Chip-8 interpreter."
 license = "Apache-2.0"
 readme = "README.md"
-repository = "https://github.com/NightShade256/oxidized-ch8"
+repository = "https://github.com/NightShade256/ferrous-ch8"
 
 [dependencies]
 ferrous-core = { path = "./ferrous-core" }
-glium = "0.29"
-image = "0.23"
-imgui = "0.6"
-imgui-glium-renderer = "0.6"
-imgui-winit-support = "0.6"
-nfd2 = "0.2"
-rodio = "0.13"
+glium = "~0.29"
+image = "~0.23"
+imgui = "0.6.1"
+imgui-glium-renderer = "0.6.1"
+imgui-winit-support = "0.6.1"
+nfd2 = "~0.2"
+rodio = "~0.13"
 
 [profile.release]
 lto = "fat"

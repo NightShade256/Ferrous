@@ -1,16 +1,16 @@
 [package]
 name = "ferrous-core"
-version = "0.5.0"
+version = "1.0.0"
 authors = ["Anish Jewalikar <anishjewalikar@gmail.com>"]
 edition = "2018"
 description = "A simple Chip-8 interpreter backend for Ferrous Chip-8."
 license = "Apache-2.0"
 readme = "README.md"
-repository = "https://github.com/NightShade256/oxidized-ch8"
+repository = "https://github.com/NightShade256/ferrous-ch8"
 
 [features]
 savestates = ["serde"]
 
 [dependencies]
-rand = "0.8"
-serde = { version = "1.0", features = ["derive"], optional = true }
+rand = "0.8.1"
+serde = { version = "~1.0", features = ["derive"], optional = true }
