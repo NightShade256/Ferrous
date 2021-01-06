@@ -65,7 +65,7 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files:  |
-          ferrous-ch8.exe
+          ferrous-ch8-win.exe
           ferrous-chip8-gnu.run
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
