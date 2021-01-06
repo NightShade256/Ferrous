@@ -59,8 +59,8 @@ jobs:
       uses: actions/download-artifact@v2
     - name: Rename Artifacts
       run: |
-        mv ./ferrous-ch8.exe ./ferrous-chip8-win.exe
-        mv ./ferrous-ch8 ./ferrous-chip8-gnu.run
+        mv ./windows-artifact/ferrous-ch8.exe ./ferrous-chip8-win.exe
+        mv ./linux-artifact/ferrous-ch8 ./ferrous-chip8-gnu.run
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
