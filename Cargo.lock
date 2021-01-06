@@ -651,7 +651,6 @@ version = "0.5.0"
 dependencies = [
  "rand",
  "serde",
- "serde_json",
 ]
 
 [[package]]
