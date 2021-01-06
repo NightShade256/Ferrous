@@ -1,0 +1,67 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Setup Rust.
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+    - name: Build Binary
+      run: cargo build --release
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: windows-artifact
+        path: target/release/ferrous-ch8.exe
+
+  build-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Setup Rust.
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        target: x86_64-unknown-linux-musl
+    - name: Build Binary
+      run: cargo build --release --target x86_64-unknown-linux-musl
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: windows-artifact
+        path: target/release/ferrous-ch8
+
+  create-release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Download All Artifacts
+      uses: actions/download-artifact@v2
+    - name: Rename Windows Binary
+      run: mv ./ferrous-ch8.exe ./ferrous-chip8.exe
+    - name: Rename Linux Binary
+      run: mv ./ferrous-ch8 ./ferrous-chip8-musl.run
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files:  |
+          ferrous-ch8.exe
+          ferrous-chip8-musl.run
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

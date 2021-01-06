@@ -36,6 +36,10 @@ cargo build --release
 
 The binary will be stored in `target/release` copy that to a suitable location.
 
+## Usage
+
+Execute the built binary, and you will be up and running.
+
 ## Implementation Details
 
 The interpreter passes the following test ROM(s),
