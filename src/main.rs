@@ -14,16 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-//! A full featured pure Rust implementation
-//! of a (super) Chip8 interpreter.
+mod frontend;
 
-#![allow(dead_code)]
-#![allow(clippy::clippy::new_without_default)]
-#![no_std]
-
-extern crate alloc;
-
-mod cpu;
-mod font;
-
-pub use cpu::CPU;
+fn main() {
+    frontend::start();
+}
