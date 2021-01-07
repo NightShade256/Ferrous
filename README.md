@@ -24,6 +24,10 @@ documented and you shouldn't have a problem.
 3. Ability to dynamically change FG, BG colours, cycles per frame
    and view FPS.
 
+![Blinky](./assets/blinky.png)
+
+![Sweetcopter](./assets/sweetcopter.png)
+
 ## Building
 
 You can build the interpreter through `cargo`.
