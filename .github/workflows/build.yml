@@ -1,4 +1,4 @@
-name: Try Build
+name: Build
 
 on:
   push:
@@ -9,10 +9,22 @@ env:
 
 jobs:
   build:
-
-    runs-on: windows-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Build
-      run: cargo build --verbose
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Install Latest Rust Toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+    - name: Run Cargo Build on Frontend
+      run: cargo build
+    - name: Run Cargo Build on Core
+      run: |
+        cd ferrous-core
+        cargo build
