@@ -27,4 +27,4 @@ jobs:
     - name: Run Cargo Build on Core
       run: |
         cd ferrous-core
-        cargo build
+        cargo build --all-features
