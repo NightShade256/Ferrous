@@ -63,6 +63,13 @@ fn initialize_display(event_loop: &EventLoop<()>) -> Display {
     display
 }
 
+/// Render Chip-8 display, onto the screen.
+fn render_display(display: &Display) -> glium::Frame {
+    let frame = display.draw();
+
+    frame
+}
+
 /// Start the emulator, and run until
 /// the user requests quitting.
 pub fn start() {
@@ -70,7 +77,7 @@ pub fn start() {
     let event_loop = EventLoop::new();
     let display = initialize_display(&event_loop);
     let mut user_interface = gui::UserInterface::new(&display);
-
+    let mut cpu = ferrous_core::CPU::new();
     let mut fps_limiter = FpsLimiter::new();
 
     event_loop.run(move |event, _, control_flow| {
@@ -87,14 +94,31 @@ pub fn start() {
             }
 
             Event::RedrawRequested(_) => {
-                user_interface.render_ui(&display);
+                use gui::EmulatorState::*;
+
+                match user_interface.state.emulator_state {
+                    Running => {
+                        for _ in 0..user_interface.state.cycles_per_frame {
+                            if cpu.execute_cycle().is_none() {
+                                eprintln!(
+                                    "[WARN] invalid or unknown opcode encountered."
+                                );
+                            }
+                        }
+
+                        cpu.step_timers();
+                    }
+
+                    Quit => *control_flow = ControlFlow::Exit,
+
+                    _ => {}
+                }
+
+                let frame = render_display(&display);
+                user_interface.render_ui(&display, frame, &mut cpu);
             }
 
             Event::RedrawEventsCleared => {
-                if user_interface.state.requested_quit {
-                    *control_flow = ControlFlow::Exit;
-                }
-
                 fps_limiter.limit();
             }
 

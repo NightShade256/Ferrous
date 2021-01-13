@@ -24,6 +24,14 @@ use imgui::{im_str, FontConfig, FontId, FontSource, MenuItem, Ui, Window};
 const EMULATOR_VERSION: &str = env!("CARGO_PKG_VERSION");
 const FONT_SOURCE: &[u8] = include_bytes!("../assets/Ubuntu.ttf");
 
+#[derive(PartialEq)]
+pub enum EmulatorState {
+    Idle,
+    Running,
+    Paused,
+    Quit,
+}
+
 /// Stores the UserInterface state.
 pub struct State {
     /// Is about window currently open?
@@ -35,8 +43,11 @@ pub struct State {
     /// FontId of the larger sized font.
     big_font: FontId,
 
-    /// Has the user requested to quit?
-    pub requested_quit: bool,
+    /// CPU cycles to execute frame.
+    pub cycles_per_frame: u16,
+
+    /// Current state of the CPU.
+    pub emulator_state: EmulatorState,
 }
 
 /// Implementation of the UI with Dear ImGui.
@@ -103,7 +114,8 @@ impl UserInterface {
             state: State {
                 about_window: false,
                 metrics_window: false,
-                requested_quit: false,
+                cycles_per_frame: 10,
+                emulator_state: EmulatorState::Idle,
                 big_font,
             },
         }
@@ -137,14 +149,18 @@ impl UserInterface {
         gl_window.window().request_redraw();
     }
 
-    pub fn render_ui(&mut self, display: &glium::Display) {
+    pub fn render_ui(
+        &mut self,
+        display: &glium::Display,
+        mut target: glium::Frame,
+        cpu: &mut ferrous_core::CPU,
+    ) {
         let mut ui = self.imgui.frame();
         let gl_window = display.gl_window();
 
-        render_menu(&mut self.state, &mut ui);
+        render_menu(&mut self.state, &mut ui, cpu);
         render_windows(&mut self.state, &mut ui);
 
-        let mut target = display.draw();
         self.platform.prepare_render(&ui, gl_window.window());
 
         target.clear_color(0.0, 0.0, 0.0, 1.0);
@@ -159,11 +175,29 @@ impl UserInterface {
 }
 
 /// Render main menu bar of the emulator.
-fn render_menu(state: &mut State, ui: &mut Ui) {
+fn render_menu(state: &mut State, ui: &mut Ui, cpu: &mut ferrous_core::CPU) {
     if let Some(main_menu_bar) = ui.begin_main_menu_bar() {
         if let Some(file_menu) = ui.begin_menu(im_str!("File"), true) {
-            MenuItem::new(im_str!("Exit"))
-                .build_with_ref(ui, &mut state.requested_quit);
+            // I know it's ugly. It really is.
+            if MenuItem::new(im_str!("Open")).build(ui) {
+                if let Ok(response) = nfd2::open_file_dialog(None, None) {
+                    if let nfd2::Response::Okay(path) = response {
+                        state.emulator_state = EmulatorState::Idle;
+
+                        let rom = std::fs::read(path)
+                            .expect("Failed to read ROM file.");
+
+                        cpu.reset();
+                        cpu.load_rom(&rom).expect(
+                            "Failed to load ROM in interpreter memory.",
+                        );
+                    }
+                }
+            }
+
+            if MenuItem::new(im_str!("Exit")).build(ui) {
+                state.emulator_state = EmulatorState::Quit;
+            }
 
             file_menu.end(ui);
         }
