@@ -14,141 +14,99 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::time::{Duration, Instant};
+//! Contains helper functions and the main entry point for the frontend.
 
-use ferrous_core::CPU;
-
+use glium::glutin::ContextBuilder;
 use glium::glutin::{
-    event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
-    event_loop::ControlFlow,
+    dpi::LogicalSize,
+    event::{Event, WindowEvent},
+    event_loop::{ControlFlow, EventLoop},
+    window::{Icon, WindowBuilder},
 };
+use glium::{Display, Surface};
 
-mod audio;
-mod file_dialog;
+mod fps_limiter;
 mod gui;
 
-/// Start the emulator, and run until the user quits.
+use fps_limiter::FpsLimiter;
+
+/// Raw RGBA data of unmodified Rust logo.
+const LOGO_DATA: &[u8] = include_bytes!("assets/Rust Logo.raw");
+
+/// Initialize the window, and then glium's
+/// display.
+fn initialize_display(event_loop: &EventLoop<()>) -> Display {
+    // Interpreter the raw data as a window icon.
+    let icon_result = Icon::from_rgba(LOGO_DATA.to_vec(), 512, 512);
+
+    if icon_result.is_err() {
+        eprintln!("Failed to initialize window icon.");
+    }
+
+    // Create a GL context, and a window.
+    let cb = ContextBuilder::new();
+    let wb = WindowBuilder::new()
+        .with_decorations(true)
+        .with_window_icon(icon_result.ok())
+        .with_title("Ferrous Chip-8")
+        .with_min_inner_size(LogicalSize::new(128, 64))
+        .with_inner_size(LogicalSize::new(1152, 576));
+
+    // Create the glium display, and clear it.
+    let display = Display::new(wb, cb, &event_loop)
+        .expect("Failed to initialize the display.");
+
+    let mut frame = display.draw();
+    frame.clear_color_srgb(0.0, 0.0, 0.0, 1.0);
+    frame.finish().expect("Failed to swap buffers.");
+
+    display
+}
+
+/// Start the emulator, and run until
+/// the user requests quitting.
 pub fn start() {
-    // Create the event loop.
-    let events_loop = glium::glutin::event_loop::EventLoop::new();
+    // Create the event loop and initialize the glium display.
+    let event_loop = EventLoop::new();
+    let display = initialize_display(&event_loop);
+    let mut user_interface = gui::UserInterface::new(&display);
 
-    // Initialize the window, the renderer and audio system.
-    let mut app = gui::Application::new(&events_loop);
+    let mut fps_limiter = FpsLimiter::new();
 
-    let mut last_time = Instant::now();
-    let mut next_time = Instant::now() + Duration::from_secs_f64(1.0 / 60.0);
+    event_loop.run(move |event, _, control_flow| {
+        user_interface.handle_event(&display, &event);
 
-    events_loop.run(move |event, _, control_flow| {
         match event {
             Event::NewEvents(_) => {
-                let now = Instant::now();
-                next_time += Duration::from_secs_f64(1.0 / 60.0);
-
-                app.imgui.io_mut().update_delta_time(now - last_time);
-                last_time = now;
+                let delta = fps_limiter.update();
+                user_interface.update_delta(delta);
             }
 
             Event::MainEventsCleared => {
-                let gl_window = app.display.gl_window();
-
-                app.platform
-                    .prepare_frame(app.imgui.io_mut(), gl_window.window())
-                    .unwrap();
-
-                gl_window.window().request_redraw();
+                user_interface.prepare_frame(&display);
             }
 
             Event::RedrawRequested(_) => {
-                // Exit if the CPU encountered a Super Chip exit instruction.
-                if app.cpu.is_halted && app.state != gui::State::Idle {
-                    app.state = gui::State::Idle;
-                    app.cpu.reset();
-                    app.audio_system.pause_beep();
-                }
-
-                if app.state == gui::State::Running {
-                    // Step timers, and execute the required cycles.
-                    for _ in 0..app.cycles_per_frame {
-                        app.cpu.execute_cycle().unwrap();
-                    }
-
-                    if app.cpu.st > 0 {
-                        app.audio_system.start_beep();
-                    } else {
-                        app.audio_system.pause_beep();
-                    }
-
-                    app.cpu.step_timers();
-                }
-
-                // Render the framebuffer.
-                app.render_frame();
+                user_interface.render_ui(&display);
             }
 
-            // Limit framerate to 60 frames per second.
             Event::RedrawEventsCleared => {
-                let now = Instant::now();
-
-                if now < next_time {
-                    std::thread::sleep(next_time - now);
+                if user_interface.state.requested_quit {
+                    *control_flow = ControlFlow::Exit;
                 }
+
+                fps_limiter.limit();
             }
 
-            // Handle keyboard events, and quit requests.
-            Event::WindowEvent { ref event, .. } => match event {
+            Event::WindowEvent { event, .. } => match event {
                 WindowEvent::CloseRequested | WindowEvent::Destroyed => {
-                    *control_flow = ControlFlow::Exit
+                    *control_flow = ControlFlow::Exit;
                 }
-                WindowEvent::KeyboardInput { input, .. }
-                    if app.state == gui::State::Running =>
-                {
-                    handle_keyboard_event(&mut app.cpu, input)
-                }
+
                 _ => {}
             },
 
             _ => {}
         }
-
-        let gl_window = app.display.gl_window();
-        app.platform.handle_event(
-            app.imgui.io_mut(),
-            gl_window.window(),
-            &event,
-        );
     });
-}
-
-/// Handle events provided by the OS.
-fn handle_keyboard_event(cpu: &mut CPU, event: &KeyboardInput) {
-    if let KeyboardInput {
-        virtual_keycode: Some(keycode),
-        state,
-        ..
-    } = event
-    {
-        let index = match keycode {
-            VirtualKeyCode::Key1 => Some(0x1),
-            VirtualKeyCode::Key2 => Some(0x2),
-            VirtualKeyCode::Key3 => Some(0x3),
-            VirtualKeyCode::Key4 => Some(0xC),
-            VirtualKeyCode::Q => Some(0x4),
-            VirtualKeyCode::W => Some(0x5),
-            VirtualKeyCode::E => Some(0x6),
-            VirtualKeyCode::R => Some(0xD),
-            VirtualKeyCode::A => Some(0x7),
-            VirtualKeyCode::S => Some(0x8),
-            VirtualKeyCode::D => Some(0x9),
-            VirtualKeyCode::F => Some(0xE),
-            VirtualKeyCode::Z => Some(0xA),
-            VirtualKeyCode::X => Some(0x0),
-            VirtualKeyCode::C => Some(0xB),
-            VirtualKeyCode::V => Some(0xF),
-            _ => None,
-        };
-
-        if let Some(i) = index {
-            cpu.set_key_at_index(i, *state == ElementState::Pressed);
-        }
-    }
 }
