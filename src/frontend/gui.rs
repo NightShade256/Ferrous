@@ -18,13 +18,9 @@ limitations under the License.
 //! of Dear ImGui.
 
 use glium::glutin::event::Event;
-use glium::{
-    texture::RawImage2d, uniforms::MagnifySamplerFilter, BlitTarget, Surface,
-    Texture2d,
-};
+use glium::{texture::RawImage2d, uniforms::MagnifySamplerFilter, BlitTarget, Surface, Texture2d};
 use imgui::{
-    im_str, ColorEdit, FontConfig, FontId, FontSource, MenuItem, Slider,
-    SliderFlags, Ui, Window,
+    im_str, ColorEdit, FontConfig, FontId, FontSource, MenuItem, Slider, SliderFlags, Ui, Window,
 };
 
 const EMULATOR_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -126,9 +122,8 @@ impl UserInterface {
 
         imgui.io_mut().font_global_scale = (1.0 / hidpi_factor) as f32;
 
-        let renderer =
-            imgui_glium_renderer::Renderer::init(&mut imgui, display)
-                .expect("Failed to initialize Dear ImGui glium renderer.");
+        let renderer = imgui_glium_renderer::Renderer::init(&mut imgui, display)
+            .expect("Failed to initialize Dear ImGui glium renderer.");
 
         Self {
             imgui,
@@ -168,30 +163,24 @@ impl UserInterface {
             .map(|x| ((*x) * 255.0).round() as u8)
             .collect::<Vec<u8>>();
 
-        self.framebuffer.chunks_exact_mut(3).enumerate().for_each(
-            |(i, rgb)| {
+        self.framebuffer
+            .chunks_exact_mut(3)
+            .enumerate()
+            .for_each(|(i, rgb)| {
                 if data[i] == 0 {
                     rgb.copy_from_slice(&bg);
                 } else {
                     rgb.copy_from_slice(&fg);
                 }
-            },
-        );
+            });
     }
 
     /// Let Dear ImGui platform handle window events.
-    pub fn handle_event(
-        &mut self,
-        display: &glium::Display,
-        event: &Event<()>,
-    ) {
+    pub fn handle_event(&mut self, display: &glium::Display, event: &Event<()>) {
         let gl_window = display.gl_window();
 
-        self.platform.handle_event(
-            self.imgui.io_mut(),
-            gl_window.window(),
-            event,
-        );
+        self.platform
+            .handle_event(self.imgui.io_mut(), gl_window.window(), event);
     }
 
     pub fn update_delta(&mut self, delta: std::time::Duration) {
@@ -207,11 +196,7 @@ impl UserInterface {
         gl_window.window().request_redraw();
     }
 
-    pub fn render_ui(
-        &mut self,
-        display: &glium::Display,
-        cpu: &mut ferrous_core::CPU,
-    ) {
+    pub fn render_ui(&mut self, display: &glium::Display, cpu: &mut ferrous_core::CPU) {
         let mut ui = self.imgui.frame();
         let gl_window = display.gl_window();
 
@@ -268,13 +253,11 @@ fn render_menu(state: &mut State, ui: &mut Ui, cpu: &mut ferrous_core::CPU) {
                     if let nfd2::Response::Okay(path) = response {
                         state.emulator_state = EmulatorState::Idle;
 
-                        let rom = std::fs::read(path)
-                            .expect("Failed to read ROM file.");
+                        let rom = std::fs::read(path).expect("Failed to read ROM file.");
 
                         cpu.reset();
-                        cpu.load_rom(&rom).expect(
-                            "Failed to load ROM in interpreter memory.",
-                        );
+                        cpu.load_rom(&rom)
+                            .expect("Failed to load ROM in interpreter memory.");
 
                         state.rom_loaded = true;
                     }
@@ -288,13 +271,9 @@ fn render_menu(state: &mut State, ui: &mut Ui, cpu: &mut ferrous_core::CPU) {
             file_menu.end(ui);
         }
 
-        if let Some(emulation_menu) = ui.begin_menu(im_str!("Emulation"), true)
-        {
+        if let Some(emulation_menu) = ui.begin_menu(im_str!("Emulation"), true) {
             if MenuItem::new(im_str!("Start"))
-                .enabled(
-                    state.emulator_state != EmulatorState::Running
-                        && state.rom_loaded,
-                )
+                .enabled(state.emulator_state != EmulatorState::Running && state.rom_loaded)
                 .build(ui)
             {
                 state.emulator_state = EmulatorState::Running;
@@ -317,12 +296,9 @@ fn render_menu(state: &mut State, ui: &mut Ui, cpu: &mut ferrous_core::CPU) {
                 state.emulator_state = EmulatorState::Idle;
             }
 
-            MenuItem::new(im_str!("Pallete"))
-                .build_with_ref(ui, &mut state.pallete_window);
+            MenuItem::new(im_str!("Pallete")).build_with_ref(ui, &mut state.pallete_window);
 
-            if let Some(cycles_menu) =
-                ui.begin_menu(im_str!("Cycles per Frame"), true)
-            {
+            if let Some(cycles_menu) = ui.begin_menu(im_str!("Cycles per Frame"), true) {
                 Slider::<u16>::new(im_str!("cycles"))
                     .range(1..=2000)
                     .flags(SliderFlags::ALWAYS_CLAMP)
@@ -335,11 +311,9 @@ fn render_menu(state: &mut State, ui: &mut Ui, cpu: &mut ferrous_core::CPU) {
                 MenuItem::new(im_str!("Load and Store Quirk"))
                     .build_with_ref(ui, &mut cpu.load_store_quirk);
 
-                MenuItem::new(im_str!("Shift Quirk"))
-                    .build_with_ref(ui, &mut cpu.shift_quirk);
+                MenuItem::new(im_str!("Shift Quirk")).build_with_ref(ui, &mut cpu.shift_quirk);
 
-                MenuItem::new(im_str!("Jump Quirk"))
-                    .build_with_ref(ui, &mut cpu.jump_quirk);
+                MenuItem::new(im_str!("Jump Quirk")).build_with_ref(ui, &mut cpu.jump_quirk);
 
                 quirks_menu.end(ui);
             }
@@ -351,8 +325,7 @@ fn render_menu(state: &mut State, ui: &mut Ui, cpu: &mut ferrous_core::CPU) {
             MenuItem::new(im_str!("Dear ImGui Metrics"))
                 .build_with_ref(ui, &mut state.metrics_window);
 
-            MenuItem::new(im_str!("About"))
-                .build_with_ref(ui, &mut state.about_window);
+            MenuItem::new(im_str!("About")).build_with_ref(ui, &mut state.about_window);
 
             help_menu.end(ui);
         }
@@ -368,20 +341,24 @@ fn render_windows(state: &mut State, ui: &mut Ui) {
         let font_id = state.big_font;
 
         Window::new(im_str!("About"))
-        .bg_alpha(1.0)
-        .resizable(false)
-        .opened(&mut state.about_window)
-        .build(ui, || {
-            let token = ui.push_font(font_id);
-            ui.text_colored([0.7, 0.25, 0.1, 1.0], im_str!("Ferrous Chip-8"));
-            token.pop(&ui);
+            .bg_alpha(1.0)
+            .resizable(false)
+            .opened(&mut state.about_window)
+            .build(ui, || {
+                let token = ui.push_font(font_id);
+                ui.text_colored([0.7, 0.25, 0.1, 1.0], im_str!("Ferrous Chip-8"));
+                token.pop(&ui);
 
-            ui.text(im_str!("A simple, full featured (super) Chip-8 interpreter written in pure Rust."));
-            ui.separator();
-            ui.text(im_str!("v{}", EMULATOR_VERSION));
-            ui.text(im_str!("Author: Anish Jewalikar"));
-            ui.text(im_str!("Licensed under the terms of the Apache-2.0 license."));
-        });
+                ui.text(im_str!(
+                    "A simple, full featured (super) Chip-8 interpreter written in pure Rust."
+                ));
+                ui.separator();
+                ui.text(im_str!("v{}", EMULATOR_VERSION));
+                ui.text(im_str!("Author: Anish Jewalikar"));
+                ui.text(im_str!(
+                    "Licensed under the terms of the Apache-2.0 license."
+                ));
+            });
     }
 
     if state.metrics_window {

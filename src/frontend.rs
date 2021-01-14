@@ -19,7 +19,7 @@ limitations under the License.
 use glium::glutin::ContextBuilder;
 use glium::glutin::{
     dpi::LogicalSize,
-    event::{Event, WindowEvent},
+    event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::{Icon, WindowBuilder},
 };
@@ -54,14 +54,47 @@ fn initialize_display(event_loop: &EventLoop<()>) -> Display {
         .with_inner_size(LogicalSize::new(1152, 576));
 
     // Create the glium display, and clear it.
-    let display = Display::new(wb, cb, &event_loop)
-        .expect("Failed to initialize the display.");
+    let display = Display::new(wb, cb, &event_loop).expect("Failed to initialize the display.");
 
     let mut frame = display.draw();
     frame.clear_color_srgb(0.0, 0.0, 0.0, 1.0);
     frame.finish().expect("Failed to swap buffers.");
 
     display
+}
+
+/// Handle events provided by the OS.
+fn handle_keyboard_event(cpu: &mut ferrous_core::CPU, input: &KeyboardInput) {
+    if let KeyboardInput {
+        virtual_keycode: Some(keycode),
+        state,
+        ..
+    } = input
+    {
+        let index = match keycode {
+            VirtualKeyCode::Key1 => Some(0x1),
+            VirtualKeyCode::Key2 => Some(0x2),
+            VirtualKeyCode::Key3 => Some(0x3),
+            VirtualKeyCode::Key4 => Some(0xC),
+            VirtualKeyCode::Q => Some(0x4),
+            VirtualKeyCode::W => Some(0x5),
+            VirtualKeyCode::E => Some(0x6),
+            VirtualKeyCode::R => Some(0xD),
+            VirtualKeyCode::A => Some(0x7),
+            VirtualKeyCode::S => Some(0x8),
+            VirtualKeyCode::D => Some(0x9),
+            VirtualKeyCode::F => Some(0xE),
+            VirtualKeyCode::Z => Some(0xA),
+            VirtualKeyCode::X => Some(0x0),
+            VirtualKeyCode::C => Some(0xB),
+            VirtualKeyCode::V => Some(0xF),
+            _ => None,
+        };
+
+        if let Some(i) = index {
+            cpu.set_key_at_index(i, *state == ElementState::Pressed);
+        }
+    }
 }
 
 /// Start the emulator, and run until
@@ -95,9 +128,7 @@ pub fn start() {
                     Running => {
                         for _ in 0..user_interface.state.cycles_per_frame {
                             if cpu.execute_cycle().is_none() {
-                                eprintln!(
-                                    "[WARN] invalid or unknown opcode encountered."
-                                );
+                                eprintln!("[WARN] invalid or unknown opcode encountered.");
                             }
                         }
 
@@ -126,6 +157,12 @@ pub fn start() {
             Event::WindowEvent { event, .. } => match event {
                 WindowEvent::CloseRequested | WindowEvent::Destroyed => {
                     *control_flow = ControlFlow::Exit;
+                }
+
+                WindowEvent::KeyboardInput { ref input, .. }
+                    if user_interface.state.emulator_state == gui::EmulatorState::Running =>
+                {
+                    handle_keyboard_event(&mut cpu, input);
                 }
 
                 _ => {}
