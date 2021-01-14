@@ -18,8 +18,14 @@ limitations under the License.
 //! of Dear ImGui.
 
 use glium::glutin::event::Event;
-use glium::Surface;
-use imgui::{im_str, FontConfig, FontId, FontSource, MenuItem, Ui, Window};
+use glium::{
+    texture::RawImage2d, uniforms::MagnifySamplerFilter, BlitTarget, Surface,
+    Texture2d,
+};
+use imgui::{
+    im_str, ColorEdit, FontConfig, FontId, FontSource, MenuItem, Slider,
+    SliderFlags, Ui, Window,
+};
 
 const EMULATOR_VERSION: &str = env!("CARGO_PKG_VERSION");
 const FONT_SOURCE: &[u8] = include_bytes!("../assets/Ubuntu.ttf");
@@ -43,11 +49,26 @@ pub struct State {
     /// FontId of the larger sized font.
     big_font: FontId,
 
+    /// Is color picker active?
+    pallete_window: bool,
+
     /// CPU cycles to execute frame.
     pub cycles_per_frame: u16,
 
     /// Current state of the CPU.
     pub emulator_state: EmulatorState,
+
+    /// Foreground color.
+    fg_color: [f32; 3],
+
+    /// Background color.
+    bg_color: [f32; 3],
+
+    /// Height of the main menu bar.
+    menu_height: Option<u32>,
+
+    /// Is a ROM currently loaded?
+    rom_loaded: bool,
 }
 
 /// Implementation of the UI with Dear ImGui.
@@ -60,6 +81,8 @@ pub struct UserInterface {
 
     /// Dear ImGui winit backed platform implementation.
     platform: imgui_winit_support::WinitPlatform,
+
+    framebuffer: Box<[u8; 128 * 64 * 3]>,
 
     /// Ui State
     pub state: State,
@@ -111,14 +134,49 @@ impl UserInterface {
             imgui,
             renderer,
             platform,
+            framebuffer: Box::new([0; 128 * 64 * 3]),
             state: State {
+                menu_height: None,
                 about_window: false,
                 metrics_window: false,
                 cycles_per_frame: 10,
                 emulator_state: EmulatorState::Idle,
                 big_font,
+                fg_color: [1.0; 3],
+                bg_color: [0.0; 3],
+                rom_loaded: false,
+                pallete_window: false,
             },
         }
+    }
+
+    /// Update the framebuffer, with new data.
+    pub fn update_framebuffer(&mut self, cpu: &ferrous_core::CPU) {
+        let data = cpu.get_video_buffer();
+
+        let fg = self
+            .state
+            .fg_color
+            .iter()
+            .map(|x| ((*x) * 255.0).round() as u8)
+            .collect::<Vec<u8>>();
+
+        let bg = self
+            .state
+            .bg_color
+            .iter()
+            .map(|x| ((*x) * 255.0).round() as u8)
+            .collect::<Vec<u8>>();
+
+        self.framebuffer.chunks_exact_mut(3).enumerate().for_each(
+            |(i, rgb)| {
+                if data[i] == 0 {
+                    rgb.copy_from_slice(&bg);
+                } else {
+                    rgb.copy_from_slice(&fg);
+                }
+            },
+        );
     }
 
     /// Let Dear ImGui platform handle window events.
@@ -152,7 +210,6 @@ impl UserInterface {
     pub fn render_ui(
         &mut self,
         display: &glium::Display,
-        mut target: glium::Frame,
         cpu: &mut ferrous_core::CPU,
     ) {
         let mut ui = self.imgui.frame();
@@ -163,7 +220,34 @@ impl UserInterface {
 
         self.platform.prepare_render(&ui, gl_window.window());
 
+        let mut target = display.draw();
         target.clear_color(0.0, 0.0, 0.0, 1.0);
+
+        // Create texture.
+        let (height, width) = cpu.get_height_width();
+        let buffer_length = height * width * 3;
+
+        let image = RawImage2d::from_raw_rgb_reversed(
+            &self.framebuffer[..buffer_length],
+            (width as u32, height as u32),
+        );
+
+        let texture = Texture2d::new(display, image).unwrap();
+        let window_size = gl_window.window().inner_size();
+
+        texture.as_surface().blit_whole_color_to(
+            &target,
+            &BlitTarget {
+                left: 0,
+                bottom: 0,
+                width: window_size.width as i32,
+                height: (window_size
+                    .height
+                    .saturating_sub(self.state.menu_height.unwrap_or(0)))
+                    as i32,
+            },
+            MagnifySamplerFilter::Nearest,
+        );
 
         let draw_data = ui.render();
         self.renderer
@@ -191,6 +275,8 @@ fn render_menu(state: &mut State, ui: &mut Ui, cpu: &mut ferrous_core::CPU) {
                         cpu.load_rom(&rom).expect(
                             "Failed to load ROM in interpreter memory.",
                         );
+
+                        state.rom_loaded = true;
                     }
                 }
             }
@@ -200,6 +286,65 @@ fn render_menu(state: &mut State, ui: &mut Ui, cpu: &mut ferrous_core::CPU) {
             }
 
             file_menu.end(ui);
+        }
+
+        if let Some(emulation_menu) = ui.begin_menu(im_str!("Emulation"), true)
+        {
+            if MenuItem::new(im_str!("Start"))
+                .enabled(
+                    state.emulator_state != EmulatorState::Running
+                        && state.rom_loaded,
+                )
+                .build(ui)
+            {
+                state.emulator_state = EmulatorState::Running;
+            }
+
+            if MenuItem::new(im_str!("Pause"))
+                .enabled(state.emulator_state == EmulatorState::Running)
+                .build(ui)
+            {
+                state.emulator_state = EmulatorState::Paused;
+            }
+
+            if MenuItem::new(im_str!("Reset"))
+                .enabled(state.emulator_state != EmulatorState::Idle)
+                .build(ui)
+            {
+                cpu.reset();
+
+                state.rom_loaded = false;
+                state.emulator_state = EmulatorState::Idle;
+            }
+
+            MenuItem::new(im_str!("Pallete"))
+                .build_with_ref(ui, &mut state.pallete_window);
+
+            if let Some(cycles_menu) =
+                ui.begin_menu(im_str!("Cycles per Frame"), true)
+            {
+                Slider::<u16>::new(im_str!("cycles"))
+                    .range(1..=2000)
+                    .flags(SliderFlags::ALWAYS_CLAMP)
+                    .build(&ui, &mut state.cycles_per_frame);
+
+                cycles_menu.end(&ui);
+            }
+
+            if let Some(quirks_menu) = ui.begin_menu(im_str!("Quirks"), true) {
+                MenuItem::new(im_str!("Load and Store Quirk"))
+                    .build_with_ref(ui, &mut cpu.load_store_quirk);
+
+                MenuItem::new(im_str!("Shift Quirk"))
+                    .build_with_ref(ui, &mut cpu.shift_quirk);
+
+                MenuItem::new(im_str!("Jump Quirk"))
+                    .build_with_ref(ui, &mut cpu.jump_quirk);
+
+                quirks_menu.end(ui);
+            }
+
+            emulation_menu.end(ui);
         }
 
         if let Some(help_menu) = ui.begin_menu(im_str!("Help"), true) {
@@ -212,6 +357,7 @@ fn render_menu(state: &mut State, ui: &mut Ui, cpu: &mut ferrous_core::CPU) {
             help_menu.end(ui);
         }
 
+        state.menu_height = Some(ui.window_size()[1] as u32);
         main_menu_bar.end(ui);
     }
 }
@@ -240,5 +386,28 @@ fn render_windows(state: &mut State, ui: &mut Ui) {
 
     if state.metrics_window {
         ui.show_metrics_window(&mut state.metrics_window);
+    }
+
+    if state.pallete_window {
+        if let Some(window) = Window::new(im_str!("Pallete"))
+            .always_auto_resize(true)
+            .resizable(false)
+            .opened(&mut state.pallete_window)
+            .begin(ui)
+        {
+            ColorEdit::new(im_str!("Foreground Colour"), &mut state.fg_color)
+                .picker(true)
+                .format(imgui::ColorFormat::U8)
+                .alpha(false)
+                .build(&ui);
+
+            ColorEdit::new(im_str!("Background Colour"), &mut state.bg_color)
+                .picker(true)
+                .format(imgui::ColorFormat::U8)
+                .alpha(false)
+                .build(&ui);
+
+            window.end(&ui);
+        }
     }
 }

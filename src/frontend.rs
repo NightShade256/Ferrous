@@ -63,13 +63,6 @@ fn initialize_display(event_loop: &EventLoop<()>) -> Display {
     display
 }
 
-/// Render Chip-8 display, onto the screen.
-fn render_display(display: &Display) -> glium::Frame {
-    let frame = display.draw();
-
-    frame
-}
-
 /// Start the emulator, and run until
 /// the user requests quitting.
 pub fn start() {
@@ -114,8 +107,8 @@ pub fn start() {
                     _ => {}
                 }
 
-                let frame = render_display(&display);
-                user_interface.render_ui(&display, frame, &mut cpu);
+                user_interface.update_framebuffer(&cpu);
+                user_interface.render_ui(&display, &mut cpu);
             }
 
             Event::RedrawEventsCleared => {
