@@ -1,6 +1,6 @@
 [package]
 name = "ferrous-core"
-version = "1.0.1"
+version = "1.0.2"
 authors = ["Anish Jewalikar <anishjewalikar@gmail.com>"]
 edition = "2018"
 description = "A simple Chip-8 interpreter backend for Ferrous Chip-8."
@@ -14,5 +14,5 @@ wasm = ["getrandom"]
 
 [dependencies]
 getrandom = { version = "0.2.1", features = ["js"], optional = true }
-rand = "0.8.1"
-serde = { version = "~1.0", features = ["derive"], optional = true }
+rand = "0.8.2"
+serde = { version = "1.0.119", features = ["derive"], optional = true }

@@ -190,10 +190,7 @@ impl CPU {
     pub fn load_rom(&mut self, buffer: &[u8]) -> Result<(), String> {
         // Return an error, if bounds are exceeded.
         if buffer.len() > 3584 {
-            return Err(
-                "ROM\'s length is larger than the permitted 3584 bytes."
-                    .to_string(),
-            );
+            return Err("ROM\'s length is larger than the permitted 3584 bytes.".to_string());
         }
 
         // Copy the ROM buffer.
@@ -527,8 +524,7 @@ impl CPU {
     /// Jump to location nnn + V0.
     fn op_bnnn(&mut self, nnn: u16) {
         if self.jump_quirk {
-            self.pc = nnn as usize
-                + self.register[(nnn >> 8) as usize & 0xF] as usize;
+            self.pc = nnn as usize + self.register[(nnn >> 8) as usize & 0xF] as usize;
         } else {
             self.pc = nnn as usize + self.register[0] as usize;
         }
@@ -555,9 +551,7 @@ impl CPU {
             // Super Chip 16x16 sprite
             for r in 0..16 {
                 for c in 0..16 {
-                    let byte = self.memory
-                        [self.i + (r * 2) + (if c > 7 { 1 } else { 0 })]
-                        as usize;
+                    let byte = self.memory[self.i + (r * 2) + (if c > 7 { 1 } else { 0 })] as usize;
 
                     if (byte & (0x80 >> (c % 8))) != 0 {
                         let index = ((x + c) % cols) + ((y + r) % rows) * cols;

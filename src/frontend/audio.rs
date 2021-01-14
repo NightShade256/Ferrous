@@ -51,7 +51,7 @@ impl Audio {
     }
 
     /// Start playing the beep, if not already playing.
-    pub fn start_beep(&self) {
+    pub fn play_beep(&self) {
         self.sender.send(true).unwrap();
     }
 

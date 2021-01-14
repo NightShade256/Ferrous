@@ -5,7 +5,7 @@ members = [
 
 [package]
 name = "ferrous-ch8"
-version = "1.0.1"
+version = "1.0.2"
 authors = ["Anish Jewalikar <anishjewalikar@gmail.com>"]
 edition = "2018"
 description = "A simple, full featured (super) Chip-8 interpreter."
@@ -15,13 +15,12 @@ repository = "https://github.com/NightShade256/ferrous-ch8"
 
 [dependencies]
 ferrous-core = { path = "./ferrous-core" }
-glium = "~0.29"
-image = "~0.23"
+glium = "0.29.0"
 imgui = "0.6.1"
 imgui-glium-renderer = "0.6.1"
 imgui-winit-support = "0.6.1"
-nfd2 = "~0.2"
-rodio = "~0.13"
+nfd2 = "0.2.3"
+rodio = "0.13.0"
 
 [profile.release]
 lto = "fat"
