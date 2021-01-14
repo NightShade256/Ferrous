@@ -18,6 +18,7 @@ ferrous-core = { path = "./ferrous-core" }
 glium = "0.29.0"
 imgui = "0.6.1"
 imgui-glium-renderer = "0.6.1"
+imgui-memory-editor = { git = "https://github.com/NightShade256/rust-imgui-memory-editor" }
 imgui-winit-support = "0.6.1"
 nfd2 = "0.2.3"
 rodio = "0.13.0"

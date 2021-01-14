@@ -475,6 +475,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "cty"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7313c0d620d0cb4dbd9d019e461a4beb501071ff46ec0ab933efb4daa76d73e3"
+
+[[package]]
 name = "darling"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -571,6 +577,7 @@ dependencies = [
  "glium",
  "imgui",
  "imgui-glium-renderer",
+ "imgui-memory-editor",
  "imgui-winit-support",
  "nfd2",
  "rodio",
@@ -822,6 +829,25 @@ checksum = "4e0755707343b50c7710ea5ededb7c955d2bceff7d38b515f7e6e0c7eeca04ca"
 dependencies = [
  "glium",
  "imgui",
+]
+
+[[package]]
+name = "imgui-memory-editor"
+version = "0.2.0"
+source = "git+https://github.com/NightShade256/rust-imgui-memory-editor#ca6bf7e61d9b2470286279e098d7b4008f2f34e8"
+dependencies = [
+ "cty",
+ "imgui",
+ "imgui-memory-editor-sys",
+]
+
+[[package]]
+name = "imgui-memory-editor-sys"
+version = "0.2.0"
+source = "git+https://github.com/NightShade256/rust-imgui-memory-editor#ca6bf7e61d9b2470286279e098d7b4008f2f34e8"
+dependencies = [
+ "cc",
+ "cty",
 ]
 
 [[package]]

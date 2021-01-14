@@ -24,7 +24,7 @@ use imgui::{
 };
 
 const EMULATOR_VERSION: &str = env!("CARGO_PKG_VERSION");
-const FONT_SOURCE: &[u8] = include_bytes!("../assets/Ubuntu.ttf");
+const FONT_SOURCE: &[u8] = include_bytes!("../assets/FiraMono.ttf");
 
 #[derive(PartialEq)]
 pub enum EmulatorState {
@@ -47,6 +47,12 @@ pub struct State {
 
     /// Is color picker active?
     pallete_window: bool,
+
+    /// Is CPU debug windows active.
+    debug_memory_view: bool,
+
+    /// ImGui Memory Editor widget.
+    memory_edit: imgui_memory_editor::MemoryEditor,
 
     /// CPU cycles to execute frame.
     pub cycles_per_frame: u16,
@@ -141,6 +147,8 @@ impl UserInterface {
                 bg_color: [0.0; 3],
                 rom_loaded: false,
                 pallete_window: false,
+                debug_memory_view: false,
+                memory_edit: imgui_memory_editor::MemoryEditor::default(),
             },
         }
     }
@@ -201,7 +209,7 @@ impl UserInterface {
         let gl_window = display.gl_window();
 
         render_menu(&mut self.state, &mut ui, cpu);
-        render_windows(&mut self.state, &mut ui);
+        render_windows(&mut self.state, &mut ui, cpu);
 
         self.platform.prepare_render(&ui, gl_window.window());
 
@@ -321,6 +329,12 @@ fn render_menu(state: &mut State, ui: &mut Ui, cpu: &mut ferrous_core::CPU) {
             emulation_menu.end(ui);
         }
 
+        if let Some(debug_menu) = ui.begin_menu(im_str!("Debug"), true) {
+            MenuItem::new(im_str!("Memory")).build_with_ref(ui, &mut state.debug_memory_view);
+
+            debug_menu.end(ui);
+        }
+
         if let Some(help_menu) = ui.begin_menu(im_str!("Help"), true) {
             MenuItem::new(im_str!("Dear ImGui Metrics"))
                 .build_with_ref(ui, &mut state.metrics_window);
@@ -336,7 +350,7 @@ fn render_menu(state: &mut State, ui: &mut Ui, cpu: &mut ferrous_core::CPU) {
 }
 
 /// Render additional windows, like about, metrics etc..
-fn render_windows(state: &mut State, ui: &mut Ui) {
+fn render_windows(state: &mut State, ui: &mut Ui, cpu: &mut ferrous_core::CPU) {
     if state.about_window {
         let font_id = state.big_font;
 
@@ -386,5 +400,13 @@ fn render_windows(state: &mut State, ui: &mut Ui) {
 
             window.end(&ui);
         }
+    }
+
+    if state.debug_memory_view {
+        state
+            .memory_edit
+            .draw_window(ui, im_str!("Memory"), cpu.memory.as_mut(), None);
+
+        state.debug_memory_view = state.memory_edit.get_open();
     }
 }
