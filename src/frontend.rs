@@ -25,6 +25,7 @@ use glium::glutin::{
 };
 use glium::{Display, Surface};
 
+mod audio;
 mod fps_limiter;
 mod gui;
 
@@ -68,6 +69,7 @@ fn initialize_display(event_loop: &EventLoop<()>) -> Display {
 pub fn start() {
     // Create the event loop and initialize the glium display.
     let event_loop = EventLoop::new();
+    let audio = audio::Audio::new();
     let display = initialize_display(&event_loop);
     let mut user_interface = gui::UserInterface::new(&display);
     let mut cpu = ferrous_core::CPU::new();
@@ -105,6 +107,12 @@ pub fn start() {
                     Quit => *control_flow = ControlFlow::Exit,
 
                     _ => {}
+                }
+
+                if cpu.st > 0 && user_interface.state.emulator_state == Running {
+                    audio.play_beep();
+                } else {
+                    audio.pause_beep();
                 }
 
                 user_interface.update_framebuffer(&cpu);
