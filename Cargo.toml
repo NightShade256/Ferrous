@@ -5,7 +5,7 @@ members = [
 
 [package]
 name = "ferrous-ch8"
-version = "1.0.2"
+version = "1.1.0"
 authors = ["Anish Jewalikar <anishjewalikar@gmail.com>"]
 edition = "2018"
 description = "A simple, full featured (super) Chip-8 interpreter."
