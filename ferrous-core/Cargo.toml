@@ -1,6 +1,6 @@
 [package]
 name = "ferrous-core"
-version = "1.0.2"
+version = "1.1.0"
 authors = ["Anish Jewalikar <anishjewalikar@gmail.com>"]
 edition = "2018"
 description = "A simple Chip-8 interpreter backend for Ferrous Chip-8."

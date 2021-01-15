@@ -362,7 +362,7 @@ impl CPU {
     }
 
     /// Fetch the next opcode that is to be executed from the ROM.
-    fn fetch_opcode(&self) -> u16 {
+    pub fn fetch_opcode(&self) -> u16 {
         u16::from_be_bytes([self.memory[self.pc], self.memory[self.pc + 1]])
     }
 }
