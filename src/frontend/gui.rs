@@ -20,7 +20,8 @@ limitations under the License.
 use glium::glutin::event::Event;
 use glium::{texture::RawImage2d, uniforms::MagnifySamplerFilter, BlitTarget, Surface, Texture2d};
 use imgui::{
-    im_str, ColorEdit, FontConfig, FontId, FontSource, MenuItem, Slider, SliderFlags, Ui, Window,
+    im_str, ColorEdit, FontConfig, FontId, FontSource, ImString, MenuItem, Slider, SliderFlags, Ui,
+    Window,
 };
 
 const EMULATOR_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -48,8 +49,11 @@ pub struct State {
     /// Is color picker active?
     pallete_window: bool,
 
-    /// Is CPU debug windows active.
+    /// Is memory view window active.
     debug_memory_view: bool,
+
+    /// Is stack view active.
+    debug_stack_view: bool,
 
     /// ImGui Memory Editor widget.
     memory_edit: imgui_memory_editor::MemoryEditor,
@@ -84,6 +88,7 @@ pub struct UserInterface {
     /// Dear ImGui winit backed platform implementation.
     platform: imgui_winit_support::WinitPlatform,
 
+    /// RGB framebuffer.
     framebuffer: Box<[u8; 128 * 64 * 3]>,
 
     /// Ui State
@@ -149,6 +154,7 @@ impl UserInterface {
                 pallete_window: false,
                 debug_memory_view: false,
                 memory_edit: imgui_memory_editor::MemoryEditor::default(),
+                debug_stack_view: false,
             },
         }
     }
@@ -331,6 +337,7 @@ fn render_menu(state: &mut State, ui: &mut Ui, cpu: &mut ferrous_core::CPU) {
 
         if let Some(debug_menu) = ui.begin_menu(im_str!("Debug"), true) {
             MenuItem::new(im_str!("Memory")).build_with_ref(ui, &mut state.debug_memory_view);
+            MenuItem::new(im_str!("Address Stack")).build_with_ref(ui, &mut state.debug_stack_view);
 
             debug_menu.end(ui);
         }
@@ -408,5 +415,34 @@ fn render_windows(state: &mut State, ui: &mut Ui, cpu: &mut ferrous_core::CPU) {
             .draw_window(ui, im_str!("Memory"), cpu.memory.as_mut(), None);
 
         state.debug_memory_view = state.memory_edit.get_open();
+    }
+
+    if state.debug_stack_view {
+        Window::new(im_str!("Address Stack"))
+            .size([235.0, 245.0], imgui::Condition::Always)
+            .resizable(false)
+            .opened(&mut state.debug_stack_view)
+            .build(ui, || {
+                ui.columns(2, im_str!("address_stack"), true);
+
+                for (i, v) in cpu.stack.iter().enumerate() {
+                    ui.align_text_to_frame_padding();
+                    ui.text(format!("{:#04X}", i));
+                    ui.same_line(0.0);
+
+                    let mut input = ImString::new(format!("{:04X}", *v));
+                    let width = ui.push_item_width(48.0);
+
+                    ui.input_text(&ImString::new(format!("##{}", i)), &mut input)
+                        .read_only(true)
+                        .build();
+
+                    width.pop(ui);
+
+                    if i == 7 {
+                        ui.next_column();
+                    }
+                }
+            });
     }
 }
