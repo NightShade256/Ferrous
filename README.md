@@ -24,9 +24,14 @@ documented and you shouldn't have a problem.
 3. Ability to dynamically change FG, BG colours, cycles per frame
    and view FPS.
 
+4. Debugger with ability to view work memory, register states, stack and allows
+   for stepping timers, and opcodes.
+
 ![Blinky](./assets/blinky.png)
 
 ![Sweetcopter](./assets/sweetcopter.png)
+
+![Debugger](./assets/debugger.png)
 
 ## Building
 
