@@ -27,7 +27,7 @@ use imgui::{
 const EMULATOR_VERSION: &str = env!("CARGO_PKG_VERSION");
 const FONT_SOURCE: &[u8] = include_bytes!("../assets/FiraMono.ttf");
 
-#[derive(PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum EmulatorState {
     Idle,
     Running,
@@ -54,6 +54,12 @@ pub struct State {
 
     /// Is stack view active.
     debug_stack_view: bool,
+
+    /// Is register view active.
+    debug_register_view: bool,
+
+    /// Are debug controls active.
+    debug_controls: bool,
 
     /// ImGui Memory Editor widget.
     memory_edit: imgui_memory_editor::MemoryEditor,
@@ -155,6 +161,8 @@ impl UserInterface {
                 debug_memory_view: false,
                 memory_edit: imgui_memory_editor::MemoryEditor::default(),
                 debug_stack_view: false,
+                debug_register_view: false,
+                debug_controls: false,
             },
         }
     }
@@ -257,6 +265,22 @@ impl UserInterface {
     }
 }
 
+/// Construct a cell for register values.
+fn register_cell(ui: &Ui, name: String, value: String) {
+    ui.align_text_to_frame_padding();
+    ui.text_colored([0.0, 1.0, 0.0, 1.0], &name);
+    ui.same_line(0.0);
+
+    let mut input = ImString::new(value);
+    let width = ui.push_item_width(56.0);
+
+    ui.input_text(&ImString::new(format!("##{}", name)), &mut input)
+        .read_only(true)
+        .build();
+
+    width.pop(ui);
+}
+
 /// Render main menu bar of the emulator.
 fn render_menu(state: &mut State, ui: &mut Ui, cpu: &mut ferrous_core::CPU) {
     if let Some(main_menu_bar) = ui.begin_main_menu_bar() {
@@ -336,8 +360,10 @@ fn render_menu(state: &mut State, ui: &mut Ui, cpu: &mut ferrous_core::CPU) {
         }
 
         if let Some(debug_menu) = ui.begin_menu(im_str!("Debug"), true) {
-            MenuItem::new(im_str!("Memory")).build_with_ref(ui, &mut state.debug_memory_view);
+            MenuItem::new(im_str!("Debug Controls")).build_with_ref(ui, &mut state.debug_controls);
+            MenuItem::new(im_str!("Registers")).build_with_ref(ui, &mut state.debug_register_view);
             MenuItem::new(im_str!("Address Stack")).build_with_ref(ui, &mut state.debug_stack_view);
+            MenuItem::new(im_str!("Memory")).build_with_ref(ui, &mut state.debug_memory_view);
 
             debug_menu.end(ui);
         }
@@ -419,30 +445,102 @@ fn render_windows(state: &mut State, ui: &mut Ui, cpu: &mut ferrous_core::CPU) {
 
     if state.debug_stack_view {
         Window::new(im_str!("Address Stack"))
-            .size([235.0, 245.0], imgui::Condition::Always)
+            .size([240.0, 270.0], imgui::Condition::Always)
             .resizable(false)
             .opened(&mut state.debug_stack_view)
             .build(ui, || {
                 ui.columns(2, im_str!("address_stack"), true);
 
+                // Stack Pointer.
+                register_cell(ui, "SP  ".to_string(), format!("{:#04X}", cpu.sp));
+                ui.separator();
+
                 for (i, v) in cpu.stack.iter().enumerate() {
-                    ui.align_text_to_frame_padding();
-                    ui.text(format!("{:#04X}", i));
-                    ui.same_line(0.0);
-
-                    let mut input = ImString::new(format!("{:04X}", *v));
-                    let width = ui.push_item_width(48.0);
-
-                    ui.input_text(&ImString::new(format!("##{}", i)), &mut input)
-                        .read_only(true)
-                        .build();
-
-                    width.pop(ui);
+                    register_cell(ui, format!("{:#04X}", i), format!("{:#06X}", *v));
 
                     if i == 7 {
                         ui.next_column();
                     }
                 }
             });
+    }
+
+    if state.debug_register_view {
+        Window::new(im_str!("Registers"))
+            .size([235.0, 300.0], imgui::Condition::Always)
+            .resizable(false)
+            .opened(&mut state.debug_stack_view)
+            .build(ui, || {
+                ui.columns(2, im_str!("address_stack"), true);
+
+                // Meta Registers.
+                register_cell(ui, "PC  ".to_string(), format!("{:#06X}", cpu.pc));
+                register_cell(ui, "DT  ".to_string(), format!("{:#04X}", cpu.dt));
+                ui.next_column();
+                register_cell(ui, "I   ".to_string(), format!("{:#06X}", cpu.i));
+                register_cell(ui, "ST  ".to_string(), format!("{:#04X}", cpu.st));
+                ui.next_column();
+                ui.separator();
+
+                for (i, v) in cpu.register.iter().enumerate() {
+                    register_cell(ui, format!("{:#04X}", i), format!("{:#04X}", *v));
+
+                    if i == 7 {
+                        ui.next_column();
+                    }
+                }
+            });
+    }
+
+    if state.debug_controls {
+        if let Some(token) = Window::new(im_str!("Debug Controls"))
+            .resizable(false)
+            .always_auto_resize(true)
+            .opened(&mut state.debug_controls)
+            .begin(ui)
+        {
+            if ui.button(im_str!("Pause"), [100.0, 20.0])
+                && state.rom_loaded
+                && state.emulator_state != EmulatorState::Idle
+            {
+                state.emulator_state = match state.emulator_state {
+                    EmulatorState::Running => EmulatorState::Paused,
+                    EmulatorState::Paused => EmulatorState::Running,
+
+                    _ => state.emulator_state,
+                }
+            }
+
+            ui.same_line(0.0);
+
+            if ui.button(im_str!("Step"), [100.0, 20.0])
+                && state.rom_loaded
+                && state.emulator_state != EmulatorState::Idle
+                && cpu.execute_cycle().is_none()
+            {
+                eprintln!("[WARN] invalid or unknown opcode encountered.")
+            }
+
+            ui.same_line(0.0);
+
+            if ui.button(im_str!("Step Timers"), [100.0, 20.0])
+                && state.rom_loaded
+                && state.emulator_state != EmulatorState::Idle
+            {
+                cpu.step_timers();
+            }
+
+            ui.separator();
+
+            register_cell(
+                ui,
+                "Next OpCode".to_string(),
+                format!("{:#06X}", cpu.fetch_opcode()),
+            );
+
+            token.end(ui);
+        }
+    } else {
+        state.debug_controls = false;
     }
 }
