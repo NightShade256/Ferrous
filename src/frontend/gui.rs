@@ -540,7 +540,5 @@ fn render_windows(state: &mut State, ui: &mut Ui, cpu: &mut ferrous_core::CPU) {
 
             token.end(ui);
         }
-    } else {
-        state.debug_controls = false;
     }
 }
