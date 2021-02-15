@@ -289,40 +289,36 @@ fn render_menu(state: &mut State, ui: &mut Ui, cpu: &mut ferrous_core::CPU) {
         if let Some(file_menu) = ui.begin_menu(im_str!("File"), true) {
             // I know it's ugly. It really is.
             if MenuItem::new(im_str!("Open")).build(ui) {
-                if let Ok(response) = nfd2::open_file_dialog(Some("fc8"), None) {
-                    if let nfd2::Response::Okay(path) = response {
-                        state.emulator_state = EmulatorState::Idle;
+                if let Ok(nfd2::Response::Okay(path)) = nfd2::open_file_dialog(Some("fc8"), None) {
+                    state.emulator_state = EmulatorState::Idle;
 
-                        let is_correct_extension =
-                            path.extension() == Some(&std::ffi::OsStr::new("fc8"));
-                        let data = std::fs::read(path).expect("Failed to read ROM file.");
+                    let is_correct_extension =
+                        path.extension() == Some(&std::ffi::OsStr::new("fc8"));
+                    let data = std::fs::read(path).expect("Failed to read ROM file.");
 
-                        if is_correct_extension {
-                            let sav: ferrous_core::CPU = serde_json::from_slice(&data)
-                                .expect("Could not deserialize JSON input.");
+                    if is_correct_extension {
+                        let sav: ferrous_core::CPU = serde_json::from_slice(&data)
+                            .expect("Could not deserialize JSON input.");
 
-                            let _ = std::mem::replace(cpu, sav);
-                        } else {
-                            cpu.reset();
-                            cpu.load_rom(&data)
-                                .expect("Failed to load ROM in interpreter memory.");
-                        }
-
-                        state.rom_loaded = true;
+                        let _ = std::mem::replace(cpu, sav);
+                    } else {
+                        cpu.reset();
+                        cpu.load_rom(&data)
+                            .expect("Failed to load ROM in interpreter memory.");
                     }
+
+                    state.rom_loaded = true;
                 }
             }
 
             if MenuItem::new(im_str!("Save State")).build(ui) {
-                if let Ok(response) = nfd2::open_save_dialog(Some("fc8"), None) {
-                    if let nfd2::Response::Okay(path) = response {
-                        let mut file =
-                            std::fs::File::create(path).expect("Failed to create save file.");
-                        let serialized = serde_json::to_vec(cpu).expect("Failed to serialize CPU.");
+                if let Ok(nfd2::Response::Okay(path)) = nfd2::open_save_dialog(Some("fc8"), None) {
+                    let mut file =
+                        std::fs::File::create(path).expect("Failed to create save file.");
+                    let serialized = serde_json::to_vec(cpu).expect("Failed to serialize CPU.");
 
-                        file.write_all(&serialized)
-                            .expect("Failed to write save file.");
-                    }
+                    file.write_all(&serialized)
+                        .expect("Failed to write save file.");
                 }
             }
 

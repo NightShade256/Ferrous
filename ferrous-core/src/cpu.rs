@@ -155,8 +155,8 @@ impl CPU {
     /// ```
     pub fn reset(&mut self) {
         // Clear only the non-reserved memory.
-        self.memory[0x200..].iter_mut().for_each(|x| *x = 0);
-        self.register.iter_mut().for_each(|x| *x = 0);
+        self.memory[0x200..].fill(0);
+        self.register.fill(0);
 
         self.pc = 0x200;
         self.sp = 0;
@@ -164,8 +164,8 @@ impl CPU {
         self.dt = 0;
         self.st = 0;
 
-        self.vram.iter_mut().for_each(|x| *x = 0);
-        self.keypad.iter_mut().for_each(|x| *x = false);
+        self.vram.fill(0);
+        self.keypad.fill(false);
 
         self.is_halted = false;
         self.is_highres = false;
@@ -219,7 +219,7 @@ impl CPU {
     /// This will make all the keys 'unpressed'
     /// by resetting all values in the keypad array to false.
     pub fn reset_keys(&mut self) {
-        self.keypad.iter_mut().for_each(|x| *x = false);
+        self.keypad.fill(false);
     }
 
     /// Set the key to either be pressed (true) or unpressed (false)
@@ -372,7 +372,7 @@ impl CPU {
     /// 00E0 - CLS  
     /// Clear the display.
     fn op_00e0(&mut self) {
-        self.vram.iter_mut().for_each(|x| *x = 0);
+        self.vram.fill(0);
     }
 
     /// 00EE - RET  
@@ -692,9 +692,7 @@ impl CPU {
             .copy_within(0..last_index, cols as usize * n as usize);
 
         // Clear the upper pixels.
-        self.vram[0..(cols as usize * n as usize)]
-            .iter_mut()
-            .for_each(|x| *x = 0);
+        self.vram[0..(cols as usize * n as usize)].fill(0);
     }
 
     /// 00FB - SCR  
@@ -708,7 +706,7 @@ impl CPU {
             self.vram
                 .copy_within(start..(start + cols as usize - 4), start + 4);
 
-            self.vram[start..start + 4].iter_mut().for_each(|x| *x = 0);
+            self.vram[start..start + 4].fill(0);
         }
     }
 
@@ -723,7 +721,7 @@ impl CPU {
 
             self.vram.copy_within((start + 4)..end, start);
 
-            self.vram[(end - 4)..end].iter_mut().for_each(|x| *x = 0);
+            self.vram[(end - 4)..end].fill(0);
         }
     }
 
