@@ -38,7 +38,7 @@ const LOGO_DATA: &[u8] = include_bytes!("assets/Rust Logo.raw");
 /// display.
 fn initialize_display(event_loop: &EventLoop<()>) -> Display {
     // Interpreter the raw data as a window icon.
-    let icon_result = Icon::from_rgba(LOGO_DATA.to_vec(), 512, 512);
+    let icon_result = Icon::from_rgba(LOGO_DATA.to_vec(), 64, 64);
 
     if icon_result.is_err() {
         eprintln!("Failed to initialize window icon.");
