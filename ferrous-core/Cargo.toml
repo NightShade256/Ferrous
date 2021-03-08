@@ -15,4 +15,4 @@ wasm = ["getrandom"]
 [dependencies]
 getrandom = { version = "0.2.2", features = ["js"], optional = true }
 rand = "0.8.3"
-serde = { version = "1.0.123", features = ["derive"], optional = true }
+serde = { version = "1.0.124", features = ["derive"], optional = true }
