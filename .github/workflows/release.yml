@@ -23,7 +23,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: windows-artifact
-        path: target/release/ferrous-ch8.exe
+        path: target/release/ferrous-native.exe
 
   build-linux:
     runs-on: ubuntu-latest
@@ -46,7 +46,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: linux-artifact
-        path: target/release/ferrous-ch8
+        path: target/release/ferrous-native
 
   create-release:
     runs-on: ubuntu-latest
@@ -59,13 +59,13 @@ jobs:
       uses: actions/download-artifact@v2
     - name: Rename Artifacts
       run: |
-        mv ./windows-artifact/ferrous-ch8.exe ./ferrous-chip8-win.exe
-        mv ./linux-artifact/ferrous-ch8 ./ferrous-chip8-gnu.run
+        mv ./windows-artifact/ferrous-native.exe ./ferrous-windows.exe
+        mv ./linux-artifact/ferrous-native ./ferrous-linux.run
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
         files:  |
-          ferrous-chip8-win.exe
-          ferrous-chip8-gnu.run
+          ferrous-windows.exe
+          ferrous-linux.run
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
