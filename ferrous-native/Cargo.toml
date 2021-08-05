@@ -10,7 +10,7 @@ repository = "https://github.com/NightShade256/ferrous-ch8"
 
 [dependencies]
 ferrous = { path = "../ferrous", features = ["savestates"] }
-glium = "0.29.0"
+glium = "0.30.1"
 imgui = "0.7.0"
 imgui-glium-renderer = "0.7.0"
 imgui-memory-editor = { git = "https://github.com/NightShade256/rust-imgui-memory-editor" }
