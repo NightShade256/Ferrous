@@ -170,7 +170,7 @@ impl UserInterface {
     }
 
     /// Update the framebuffer, with new data.
-    pub fn update_framebuffer(&mut self, cpu: &ferrous_core::CPU) {
+    pub fn update_framebuffer(&mut self, cpu: &ferrous::CPU) {
         let data = cpu.get_video_buffer();
 
         let fg = self
@@ -220,7 +220,7 @@ impl UserInterface {
         gl_window.window().request_redraw();
     }
 
-    pub fn render_ui(&mut self, display: &glium::Display, cpu: &mut ferrous_core::CPU) {
+    pub fn render_ui(&mut self, display: &glium::Display, cpu: &mut ferrous::CPU) {
         let mut ui = self.imgui.frame();
         let gl_window = display.gl_window();
 
@@ -284,7 +284,7 @@ fn register_cell(ui: &Ui, name: String, value: String) {
 }
 
 /// Render main menu bar of the emulator.
-fn render_menu(state: &mut State, ui: &mut Ui, cpu: &mut ferrous_core::CPU) {
+fn render_menu(state: &mut State, ui: &mut Ui, cpu: &mut ferrous::CPU) {
     if let Some(main_menu_bar) = ui.begin_main_menu_bar() {
         if let Some(file_menu) = ui.begin_menu(im_str!("File"), true) {
             // I know it's ugly. It really is.
@@ -297,7 +297,7 @@ fn render_menu(state: &mut State, ui: &mut Ui, cpu: &mut ferrous_core::CPU) {
                     let data = std::fs::read(path).expect("Failed to read ROM file.");
 
                     if is_correct_extension {
-                        let sav: ferrous_core::CPU = serde_json::from_slice(&data)
+                        let sav: ferrous::CPU = serde_json::from_slice(&data)
                             .expect("Could not deserialize JSON input.");
 
                         let _ = std::mem::replace(cpu, sav);
@@ -403,7 +403,7 @@ fn render_menu(state: &mut State, ui: &mut Ui, cpu: &mut ferrous_core::CPU) {
 }
 
 /// Render additional windows, like about, metrics etc..
-fn render_windows(state: &mut State, ui: &mut Ui, cpu: &mut ferrous_core::CPU) {
+fn render_windows(state: &mut State, ui: &mut Ui, cpu: &mut ferrous::CPU) {
     if state.about_window {
         let font_id = state.big_font;
 

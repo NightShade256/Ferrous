@@ -572,10 +572,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "ferrous-ch8"
+name = "ferrous"
 version = "1.1.2"
 dependencies = [
- "ferrous-core",
+ "getrandom",
+ "rand",
+ "serde",
+]
+
+[[package]]
+name = "ferrous-native"
+version = "1.1.2"
+dependencies = [
+ "ferrous",
  "glium",
  "imgui",
  "imgui-glium-renderer",
@@ -584,15 +593,6 @@ dependencies = [
  "nfd2",
  "rodio",
  "serde_json",
-]
-
-[[package]]
-name = "ferrous-core"
-version = "1.1.2"
-dependencies = [
- "getrandom",
- "rand",
- "serde",
 ]
 
 [[package]]

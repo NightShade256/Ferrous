@@ -64,7 +64,7 @@ fn initialize_display(event_loop: &EventLoop<()>) -> Display {
 }
 
 /// Handle events provided by the OS.
-fn handle_keyboard_event(cpu: &mut ferrous_core::CPU, input: &KeyboardInput) {
+fn handle_keyboard_event(cpu: &mut ferrous::CPU, input: &KeyboardInput) {
     if let KeyboardInput {
         virtual_keycode: Some(keycode),
         state,
@@ -105,7 +105,7 @@ pub fn start() {
     let audio = audio::Audio::new();
     let display = initialize_display(&event_loop);
     let mut user_interface = gui::UserInterface::new(&display);
-    let mut cpu = ferrous_core::CPU::new();
+    let mut cpu = ferrous::CPU::new();
     let mut fps_limiter = FpsLimiter::new();
 
     event_loop.run(move |event, _, control_flow| {

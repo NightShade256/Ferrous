@@ -27,11 +27,11 @@ documented and you shouldn't have a problem.
 4. Debugger with ability to view work memory, register states, stack and allows
    for stepping timers, and opcodes.
 
-![Blinky](./assets/blinky.png)
+![Blinky](./README/blinky.png)
 
-![Sweetcopter](./assets/sweetcopter.png)
+![Sweetcopter](./README/sweetcopter.png)
 
-![Debugger](./assets/debugger.png)
+![Debugger](./README/debugger.png)
 
 ## Building
 

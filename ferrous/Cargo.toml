@@ -1,5 +1,5 @@
 [package]
-name = "ferrous-core"
+name = "ferrous"
 version = "1.1.2"
 authors = ["Anish Jewalikar <anishjewalikar@gmail.com>"]
 edition = "2018"
