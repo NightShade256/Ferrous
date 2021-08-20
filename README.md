@@ -38,6 +38,7 @@ documented and you shouldn't have a problem.
 You can build the interpreter through `cargo`.
 
 To do so, you will require a `Rust` toolchain for your platform.
+Note: You will need GTK and ALSA dev libs installed on linux.
 
 ```bash
 cargo build --release
