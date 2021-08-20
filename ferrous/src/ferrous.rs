@@ -3,6 +3,8 @@
 
 #[cfg(feature = "savestates")]
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "savestates")]
+use serde_big_array::BigArray;
 
 use crate::font::*;
 
@@ -19,18 +21,19 @@ use crate::font::*;
 /// ```
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "savestates", derive(Serialize, Deserialize))]
-pub struct CPU {
+pub struct Ferrous {
     /// Working RAM of the CPU.
     /// 4 KB in size.
-    pub memory: Box<[u8]>,
+    #[cfg_attr(feature = "savestates", serde(with = "BigArray"))]
+    pub ram: [u8; 0x1000],
 
     /// Return address stack.
-    pub stack: Box<[u16; 0x10]>,
+    pub stack: [u16; 0x10],
 
     /// Sixteen general purpose registers.
     /// Conventionally named as V0 to VF.
     /// VF is a special register, that is used as a flag.
-    pub register: Box<[u8; 0x10]>,
+    pub reg: [u8; 0x10],
 
     /// Program Counter; Stores current location in the memory.
     pub pc: usize,
@@ -39,7 +42,7 @@ pub struct CPU {
     pub sp: usize,
 
     /// Index Register; Stores an arbitrary address, specified by the user.
-    pub i: usize,
+    pub id: usize,
 
     /// Delay Timer; Used for sync and more.
     /// It is decremented at a rate of 60Hz when non-zero.
@@ -53,11 +56,12 @@ pub struct CPU {
     /// screen.
     /// Each byte represents an individual pixel, where 1 means ON (White)
     /// and 0 means OFF (Black).
-    pub vram: Box<[u8]>,
+    #[cfg_attr(feature = "savestates", serde(with = "BigArray"))]
+    pub vram: [u8; 0x2000],
 
     /// Keypad Representation; Conveys whether a key is pressed (true) or not pressed
     /// (false) currently.
-    pub keypad: Box<[bool; 0x10]>,
+    pub keypad: [bool; 0x10],
 
     /// Is the interpreter in high resolution (SCHIP) mode?
     pub is_highres: bool,
@@ -76,17 +80,17 @@ pub struct CPU {
     pub jump_quirk: bool,
 
     /// Super Chip 8 flag registers.
-    pub flag_regs: Box<[u8; 8]>,
+    pub flag_reg: [u8; 8],
 }
 
-impl Default for CPU {
+impl Default for Ferrous {
     fn default() -> Self {
         Self::new()
     }
 }
 
 /// General Methods
-impl CPU {
+impl Ferrous {
     /// Create a new `CPU` instance.
     ///
     /// # Example
@@ -97,24 +101,24 @@ impl CPU {
     /// let mut cpu = CPU::new();
     /// ```
     pub fn new() -> Self {
-        let mut memory = Box::new([0; 0x1000]);
+        let mut memory = [0; 0x1000];
 
         // Load font sprites into memory.
         memory[0..80].copy_from_slice(&FONT_SPRITES);
         memory[80..240].copy_from_slice(&HIGH_RES_FONT_SPRITES);
 
         Self {
-            memory,
-            stack: Box::new([0; 0x10]),
-            register: Box::new([0; 0x10]),
+            ram: memory,
+            stack: [0; 0x10],
+            reg: [0; 0x10],
             pc: 0x200, // All programs start from 0x200.
             sp: 0,
-            i: 0,
+            id: 0,
             dt: 0,
             st: 0,
-            vram: Box::new([0; 128 * 64]),
-            keypad: Box::new([false; 0x10]),
-            flag_regs: Box::new([0; 8]),
+            vram: [0; 0x2000],
+            keypad: [false; 0x10],
+            flag_reg: [0; 8],
             is_halted: false,
             is_highres: false,
             load_store_quirk: false,
@@ -139,12 +143,12 @@ impl CPU {
     /// ```
     pub fn reset(&mut self) {
         // Clear only the non-reserved memory.
-        self.memory[0x200..].fill(0);
-        self.register.fill(0);
+        self.ram[0x200..].fill(0);
+        self.reg.fill(0);
 
         self.pc = 0x200;
         self.sp = 0;
-        self.i = 0;
+        self.id = 0;
         self.dt = 0;
         self.st = 0;
 
@@ -171,14 +175,14 @@ impl CPU {
     /// // Here we are just loading a stub.
     /// cpu.load_rom(&[0]);
     /// ```
-    pub fn load_rom(&mut self, buffer: &[u8]) -> Result<(), String> {
+    pub fn load_rom(&mut self, buffer: &[u8]) -> Result<(), &'static str> {
         // Return an error, if bounds are exceeded.
         if buffer.len() > 3584 {
-            return Err("ROM\'s length is larger than the permitted 3584 bytes.".to_string());
+            return Err("ROM\'s length is larger than the permitted 3584 bytes.");
         }
 
         // Copy the ROM buffer.
-        self.memory[0x200..0x200 + buffer.len()].copy_from_slice(&buffer);
+        self.ram[0x200..0x200 + buffer.len()].copy_from_slice(&buffer);
 
         Ok(())
     }
@@ -347,12 +351,12 @@ impl CPU {
 
     /// Fetch the next opcode that is to be executed from the ROM.
     pub fn fetch_opcode(&self) -> u16 {
-        u16::from_be_bytes([self.memory[self.pc], self.memory[self.pc + 1]])
+        u16::from_be_bytes([self.ram[self.pc], self.ram[self.pc + 1]])
     }
 }
 
 /// Standard CHIP opcodes.
-impl CPU {
+impl Ferrous {
     /// 00E0 - CLS  
     /// Clear the display.
     fn op_00e0(&mut self) {
@@ -386,7 +390,7 @@ impl CPU {
     /// 3xkk - SE Vx, byte  
     /// Skip next instruction if Vx = kk.
     fn op_3xkk(&mut self, x: usize, kk: u8) {
-        if self.register[x] == kk {
+        if self.reg[x] == kk {
             self.pc += 2;
         }
     }
@@ -394,7 +398,7 @@ impl CPU {
     /// 4xkk - SNE Vx, byte  
     /// Skip next instruction if Vx != kk.
     fn op_4xkk(&mut self, x: usize, kk: u8) {
-        if self.register[x] != kk {
+        if self.reg[x] != kk {
             self.pc += 2;
         }
     }
@@ -402,7 +406,7 @@ impl CPU {
     /// 5xy0 - SE Vx, Vy  
     /// Skip next instruction if Vx = Vy.
     fn op_5xy0(&mut self, x: usize, y: usize) {
-        if self.register[x] == self.register[y] {
+        if self.reg[x] == self.reg[y] {
             self.pc += 2;
         }
     }
@@ -410,90 +414,90 @@ impl CPU {
     /// 6xkk - LD Vx, byte  
     /// Set Vx = kk.
     fn op_6xkk(&mut self, x: usize, kk: u8) {
-        self.register[x] = kk;
+        self.reg[x] = kk;
     }
 
     /// 7xkk - ADD Vx, byte  
     /// Set Vx = Vx + kk.
     fn op_7xkk(&mut self, x: usize, kk: u8) {
-        self.register[x] = self.register[x].wrapping_add(kk);
+        self.reg[x] = self.reg[x].wrapping_add(kk);
     }
 
     /// 8xy0 - LD Vx, Vy  
     /// Set Vx = Vy.
     fn op_8xy0(&mut self, x: usize, y: usize) {
-        self.register[x] = self.register[y];
+        self.reg[x] = self.reg[y];
     }
 
     /// 8xy1 - OR Vx, Vy  
     /// Set Vx = Vx OR Vy.
     fn op_8xy1(&mut self, x: usize, y: usize) {
-        self.register[x] |= self.register[y];
+        self.reg[x] |= self.reg[y];
     }
 
     /// 8xy2 - AND Vx, Vy  
     /// Set Vx = Vx AND Vy.
     fn op_8xy2(&mut self, x: usize, y: usize) {
-        self.register[x] &= self.register[y];
+        self.reg[x] &= self.reg[y];
     }
 
     /// 8xy3 - XOR Vx, Vy  
     /// Set Vx = Vx XOR Vy.
     fn op_8xy3(&mut self, x: usize, y: usize) {
-        self.register[x] ^= self.register[y];
+        self.reg[x] ^= self.reg[y];
     }
 
     /// 8xy4 - ADD Vx, Vy  
     /// Set Vx = Vx + Vy, set VF = carry.
     fn op_8xy4(&mut self, x: usize, y: usize) {
-        let result = self.register[x].overflowing_add(self.register[y]);
+        let result = self.reg[x].overflowing_add(self.reg[y]);
 
-        self.register[x] = result.0;
-        self.register[0xF] = if result.1 { 1 } else { 0 };
+        self.reg[x] = result.0;
+        self.reg[0xF] = if result.1 { 1 } else { 0 };
     }
 
     /// 8xy5 - SUB Vx, Vy  
     /// Set Vx = Vx - Vy, set VF = NOT borrow.
     fn op_8xy5(&mut self, x: usize, y: usize) {
-        let result = self.register[x].overflowing_sub(self.register[y]);
+        let result = self.reg[x].overflowing_sub(self.reg[y]);
 
-        self.register[x] = result.0;
-        self.register[0xF] = if result.1 { 0 } else { 1 };
+        self.reg[x] = result.0;
+        self.reg[0xF] = if result.1 { 0 } else { 1 };
     }
 
     /// 8xy6 - SHR Vx {, Vy}  
     /// Set Vx = Vx SHR 1.
     fn op_8xy6(&mut self, x: usize, y: usize) {
         let y = if self.shift_quirk { x } else { y };
-        self.register[0xF] = self.register[y] & 0b0000_0001;
+        self.reg[0xF] = self.reg[y] & 0b0000_0001;
 
-        let temporary = self.register[y].wrapping_shr(1);
-        self.register[x] = temporary;
+        let temporary = self.reg[y].wrapping_shr(1);
+        self.reg[x] = temporary;
     }
 
     /// 8xy7 - SUBN Vx, Vy  
     /// Set Vx = Vy - Vx, set VF = NOT borrow.
     fn op_8xy7(&mut self, x: usize, y: usize) {
-        let result = self.register[y].overflowing_sub(self.register[x]);
+        let result = self.reg[y].overflowing_sub(self.reg[x]);
 
-        self.register[x] = result.0;
-        self.register[0xF] = if result.1 { 0 } else { 1 };
+        self.reg[x] = result.0;
+        self.reg[0xF] = if result.1 { 0 } else { 1 };
     }
 
     /// 8xyE - SHL Vx {, Vy}  
     /// Set Vx = Vx SHL 1.
     fn op_8xye(&mut self, x: usize, y: usize) {
         let y = if self.shift_quirk { x } else { y };
-        self.register[0xF] = (self.register[y] & 0b1000_0000) >> 7;
+        self.reg[0xF] = (self.reg[y] & 0b1000_0000) >> 7;
 
-        let temporary = self.register[y].wrapping_shl(1);
-        self.register[x] = temporary;
+        let temporary = self.reg[y].wrapping_shl(1);
+        self.reg[x] = temporary;
     }
 
     /// 9xy0 - SNE Vx, Vy  
     /// Skip next instruction if Vx != Vy.
     fn op_9xy0(&mut self, x: usize, y: usize) {
-        if self.register[x] != self.register[y] {
+        if self.reg[x] != self.reg[y] {
             self.pc += 2;
         }
     }
@@ -501,23 +505,23 @@ impl CPU {
     /// Annn - LD I, addr  
     /// Set I = nnn.
     fn op_annn(&mut self, nnn: u16) {
-        self.i = nnn as usize;
+        self.id = nnn as usize;
     }
 
     /// Bnnn - JP V0, addr  
     /// Jump to location nnn + V0.
     fn op_bnnn(&mut self, nnn: u16) {
         if self.jump_quirk {
-            self.pc = nnn as usize + self.register[(nnn >> 8) as usize & 0xF] as usize;
+            self.pc = nnn as usize + self.reg[(nnn >> 8) as usize & 0xF] as usize;
         } else {
-            self.pc = nnn as usize + self.register[0] as usize;
+            self.pc = nnn as usize + self.reg[0] as usize;
         }
     }
 
     /// Cxkk - RND Vx, byte  
     /// Set Vx = random byte AND kk.
     fn op_cxkk(&mut self, x: usize, kk: u8) {
-        self.register[x] = rand::random::<u8>() & kk;
+        self.reg[x] = rand::random::<u8>() & kk;
     }
 
     /// Dxyn - DRW Vx, Vy, nibble  
@@ -526,22 +530,22 @@ impl CPU {
     fn op_dxyn(&mut self, vx: usize, vy: usize, n: usize) {
         let (rows, cols) = self.get_height_width();
 
-        let x = self.register[vx] as usize;
-        let y = self.register[vy] as usize;
+        let x = self.reg[vx] as usize;
+        let y = self.reg[vy] as usize;
 
-        self.register[0xF] = 0;
+        self.reg[0xF] = 0;
 
         if n == 0 {
             // Super Chip 16x16 sprite
             for r in 0..16 {
                 for c in 0..16 {
-                    let byte = self.memory[self.i + (r * 2) + (if c > 7 { 1 } else { 0 })] as usize;
+                    let byte = self.ram[self.id + (r * 2) + (if c > 7 { 1 } else { 0 })] as usize;
 
                     if (byte & (0x80 >> (c % 8))) != 0 {
                         let index = ((x + c) % cols) + ((y + r) % rows) * cols;
 
                         if self.vram[index] == 1 {
-                            self.register[0xF] = 1;
+                            self.reg[0xF] = 1;
                         }
 
                         self.vram[index] ^= 1;
@@ -552,13 +556,13 @@ impl CPU {
             // Chip 8xN sprite
             for r in 0..n {
                 for c in 0..8 {
-                    let byte = self.memory[self.i + r] as usize;
+                    let byte = self.ram[self.id + r] as usize;
 
                     if (byte & (0x80 >> c)) != 0 {
                         let index = ((x + c) % cols) + ((y + r) % rows) * cols;
 
                         if self.vram[index] == 1 {
-                            self.register[0xF] = 1;
+                            self.reg[0xF] = 1;
                         }
 
                         self.vram[index] ^= 1;
@@ -571,7 +575,7 @@ impl CPU {
     /// Ex9E - SKP Vx  
     /// Skip next instruction if key with the value of Vx is pressed.
     fn op_ex9e(&mut self, x: usize) {
-        if self.keypad[self.register[x] as usize] {
+        if self.keypad[self.reg[x] as usize] {
             self.pc += 2;
         }
     }
@@ -579,7 +583,7 @@ impl CPU {
     /// ExA1 - SKNP Vx  
     /// Skip next instruction if key with the value of Vx is not pressed.
     fn op_exa1(&mut self, x: usize) {
-        if !self.keypad[self.register[x] as usize] {
+        if !self.keypad[self.reg[x] as usize] {
             self.pc += 2;
         }
     }
@@ -587,7 +591,7 @@ impl CPU {
     /// Fx07 - LD Vx, DT  
     /// Set Vx = delay timer value.
     fn op_fx07(&mut self, x: usize) {
-        self.register[x] = self.dt;
+        self.reg[x] = self.dt;
     }
 
     /// Fx0A - LD Vx, K  
@@ -595,7 +599,7 @@ impl CPU {
     fn op_fx0a(&mut self, x: usize) {
         for (count, key) in self.keypad.iter_mut().enumerate() {
             if *key {
-                self.register[x] = count as u8;
+                self.reg[x] = count as u8;
                 return;
             }
         }
@@ -606,60 +610,60 @@ impl CPU {
     /// Fx15 - LD DT, Vx  
     /// Set delay timer = Vx.
     fn op_fx15(&mut self, x: usize) {
-        self.dt = self.register[x];
+        self.dt = self.reg[x];
     }
 
     /// Fx18 - LD ST, Vx  
     /// Set sound timer = Vx.
     fn op_fx18(&mut self, x: usize) {
-        self.st = self.register[x];
+        self.st = self.reg[x];
     }
 
     /// Fx1E - ADD I, Vx  
     /// Set I = I + Vx.
     fn op_fx1e(&mut self, x: usize) {
-        self.i += self.register[x] as usize;
+        self.id += self.reg[x] as usize;
     }
 
     /// Fx29 - LD F, Vx  
     /// Set I = location of sprite for digit Vx.
     fn op_fx29(&mut self, x: usize) {
-        self.i = self.register[x] as usize * 5;
+        self.id = self.reg[x] as usize * 5;
     }
 
     /// Fx33 - LD B, Vx  
     /// Store BCD representation of Vx in memory locations I, I+1, and I+2.
     fn op_fx33(&mut self, x: usize) {
-        let value = self.register[x];
+        let value = self.reg[x];
 
-        self.memory[self.i] = value / 100;
-        self.memory[self.i + 1] = (value % 100) / 10;
-        self.memory[self.i + 2] = value % 10;
+        self.ram[self.id] = value / 100;
+        self.ram[self.id + 1] = (value % 100) / 10;
+        self.ram[self.id + 2] = value % 10;
     }
 
     /// Fx55 - LD [I], Vx  
     /// Store registers V0 through Vx in memory starting at location I.
     fn op_fx55(&mut self, x: usize) {
-        self.memory[self.i..=self.i + x].copy_from_slice(&self.register[0..=x]);
+        self.ram[self.id..=self.id + x].copy_from_slice(&self.reg[0..=x]);
 
         if !self.load_store_quirk {
-            self.i = (self.i + x + 1) & 0xFFFF;
+            self.id = (self.id + x + 1) & 0xFFFF;
         }
     }
 
     /// Fx65 - LD Vx, [I]  
     /// Read registers V0 through Vx from memory starting at location I.
     fn op_fx65(&mut self, x: usize) {
-        self.register[0..=x].copy_from_slice(&self.memory[self.i..=self.i + x]);
+        self.reg[0..=x].copy_from_slice(&self.ram[self.id..=self.id + x]);
 
         if !self.load_store_quirk {
-            self.i = (self.i + x + 1) & 0xFFFF;
+            self.id = (self.id + x + 1) & 0xFFFF;
         }
     }
 }
 
 /// SCHIP opcodes
-impl CPU {
+impl Ferrous {
     /// 00Cn - SCD nibble  
     /// Scroll display N lines down.
     fn op_00cn(&mut self, n: u8) {
@@ -732,18 +736,18 @@ impl CPU {
     /// Fx30 - LD HF, Vx  
     /// Point I to 10-byte font sprite for VX (0..F)
     fn op_fx30(&mut self, x: usize) {
-        self.i = (self.register[x] as usize * 10) + 80;
+        self.id = (self.reg[x] as usize * 10) + 80;
     }
 
     /// Fx75 - LD R, Vx  
     /// Store V0..VX in RPL user flags (X <= 7)
     fn op_fx75(&mut self, x: usize) {
-        self.flag_regs[0..=x].copy_from_slice(&self.register[0..=x]);
+        self.flag_reg[0..=x].copy_from_slice(&self.reg[0..=x]);
     }
 
     /// Fx85 - LD Vx, R  
     /// Read V0..VX from RPL user flags (X <= 7)
-    fn op_fx85(&mut self, x: usize) {
-        self.register[0..=x].copy_from_slice(&self.flag_regs[0..=x]);
+    pub fn op_fx85(&mut self, x: usize) {
+        self.reg[0..=x].copy_from_slice(&self.flag_reg[0..=x]);
     }
 }

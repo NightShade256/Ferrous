@@ -1,12 +1,7 @@
 [package]
 name = "ferrous-native"
 version = "1.1.2"
-authors = ["Anish Jewalikar <anishjewalikar@gmail.com>"]
 edition = "2018"
-description = "A simple, full featured (super) Chip-8 interpreter."
-license = "Apache-2.0"
-readme = "README.md"
-repository = "https://github.com/NightShade256/ferrous-ch8"
 
 [dependencies]
 ferrous = { path = "../ferrous", features = ["savestates"] }

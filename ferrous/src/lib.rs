@@ -1,7 +1,9 @@
 //! A full featured pure Rust implementation
 //! of a (super) Chip8 interpreter.
 
-mod cpu;
+#![no_std]
+
+mod ferrous;
 mod font;
 
-pub use cpu::CPU;
+pub use self::ferrous::*;

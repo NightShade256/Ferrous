@@ -154,7 +154,7 @@ impl UserInterface {
     }
 
     /// Update the framebuffer, with new data.
-    pub fn update_framebuffer(&mut self, cpu: &ferrous::CPU) {
+    pub fn update_framebuffer(&mut self, cpu: &ferrous::Ferrous) {
         let data = cpu.get_video_buffer();
 
         let fg = self
@@ -204,7 +204,7 @@ impl UserInterface {
         gl_window.window().request_redraw();
     }
 
-    pub fn render_ui(&mut self, display: &glium::Display, cpu: &mut ferrous::CPU) {
+    pub fn render_ui(&mut self, display: &glium::Display, cpu: &mut ferrous::Ferrous) {
         let mut ui = self.imgui.frame();
         let gl_window = display.gl_window();
 
@@ -268,7 +268,7 @@ fn register_cell(ui: &Ui, name: String, value: String) {
 }
 
 /// Render main menu bar of the emulator.
-fn render_menu(state: &mut State, ui: &mut Ui, cpu: &mut ferrous::CPU) {
+fn render_menu(state: &mut State, ui: &mut Ui, cpu: &mut ferrous::Ferrous) {
     if let Some(main_menu_bar) = ui.begin_main_menu_bar() {
         if let Some(file_menu) = ui.begin_menu(im_str!("File"), true) {
             // I know it's ugly. It really is.
@@ -281,7 +281,7 @@ fn render_menu(state: &mut State, ui: &mut Ui, cpu: &mut ferrous::CPU) {
                     let data = std::fs::read(path).expect("Failed to read ROM file.");
 
                     if is_correct_extension {
-                        let sav: ferrous::CPU = serde_json::from_slice(&data)
+                        let sav: ferrous::Ferrous = serde_json::from_slice(&data)
                             .expect("Could not deserialize JSON input.");
 
                         let _ = std::mem::replace(cpu, sav);
@@ -387,7 +387,7 @@ fn render_menu(state: &mut State, ui: &mut Ui, cpu: &mut ferrous::CPU) {
 }
 
 /// Render additional windows, like about, metrics etc..
-fn render_windows(state: &mut State, ui: &mut Ui, cpu: &mut ferrous::CPU) {
+fn render_windows(state: &mut State, ui: &mut Ui, cpu: &mut ferrous::Ferrous) {
     if state.about_window {
         let font_id = state.big_font;
 
@@ -442,7 +442,7 @@ fn render_windows(state: &mut State, ui: &mut Ui, cpu: &mut ferrous::CPU) {
     if state.debug_memory_view {
         state
             .memory_edit
-            .draw_window(ui, im_str!("Memory"), cpu.memory.as_mut(), None);
+            .draw_window(ui, im_str!("Memory"), cpu.ram.as_mut(), None);
 
         state.debug_memory_view = state.memory_edit.get_open();
     }
@@ -481,12 +481,12 @@ fn render_windows(state: &mut State, ui: &mut Ui, cpu: &mut ferrous::CPU) {
                 register_cell(ui, "PC  ".to_string(), format!("{:#06X}", cpu.pc));
                 register_cell(ui, "DT  ".to_string(), format!("{:#04X}", cpu.dt));
                 ui.next_column();
-                register_cell(ui, "I   ".to_string(), format!("{:#06X}", cpu.i));
+                register_cell(ui, "I   ".to_string(), format!("{:#06X}", cpu.id));
                 register_cell(ui, "ST  ".to_string(), format!("{:#04X}", cpu.st));
                 ui.next_column();
                 ui.separator();
 
-                for (i, v) in cpu.register.iter().enumerate() {
+                for (i, v) in cpu.reg.iter().enumerate() {
                     register_cell(ui, format!("{:#04X}", i), format!("{:#04X}", *v));
 
                     if i == 7 {
