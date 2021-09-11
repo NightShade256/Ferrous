@@ -28,10 +28,22 @@ Execute Ferrous' binary, and you will be up and running.
 
 Ferrous is certainly not perfect, but it supports the following features:
 
-1. Tweak the behaviour of some ambiguous for maximum compatibility.
-2. Accurate Chip-8 and Super Chip-8 emulation (interpretation?)
-3. Rich native frontend with support for debugging and more.
-4. Extremely simple and easy to understand core logic implementation.
+- Tweak the behaviour of some ambiguous for maximum compatibility.
+- Accurate Chip-8 and Super Chip-8 emulation (interpretation?)
+- Rich native frontend with support for debugging and more.
+- Extremely simple and easy to understand core logic implementation.
+
+## Resources
+
+### Documentation and References
+
+1. [CowGod's Chip-8 Technical Reference](http://devernay.free.fr/hacks/chip8/C8TECH10.HTM) (doesn't work with HTTPS)
+2. [mattmikolay's Chip-8 Reference](https://github.com/mattmikolay/chip-8/wiki/CHIP%E2%80%908-Instruction-Set)
+3. [Super Chip-8 Specification](https://github.com/JohnEarnest/Octo/blob/gh-pages/docs/SuperChip.md)
+
+### Blogs and Talks
+
+1. [Tobias V. Langhoff's Blog Post](https://tobiasvl.github.io/blog/write-a-chip-8-emulator/)
 
 ## License
 
