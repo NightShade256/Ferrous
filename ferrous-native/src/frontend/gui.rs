@@ -33,7 +33,7 @@ pub struct State {
     big_font: FontId,
 
     /// Is color picker active?
-    pallete_window: bool,
+    palette_window: bool,
 
     /// Is memory view window active.
     debug_memory_view: bool,
@@ -143,7 +143,7 @@ impl UserInterface {
                 fg_color: [1.0; 3],
                 bg_color: [0.0; 3],
                 rom_loaded: false,
-                pallete_window: false,
+                palette_window: false,
                 debug_memory_view: false,
                 memory_edit: imgui_memory_editor::MemoryEditor::default(),
                 debug_stack_view: false,
@@ -273,7 +273,9 @@ fn render_menu(state: &mut State, ui: &mut Ui, cpu: &mut ferrous::Ferrous) {
         if let Some(file_menu) = ui.begin_menu(im_str!("File"), true) {
             // I know it's ugly. It really is.
             if MenuItem::new(im_str!("Open")).build(ui) {
-                if let Ok(nfd2::Response::Okay(path)) = nfd2::open_file_dialog(Some("fc8"), None) {
+                if let Ok(nfd2::Response::Okay(path)) =
+                    nfd2::open_file_dialog(Some("ch8,c8,fc8"), None)
+                {
                     state.emulator_state = EmulatorState::Idle;
 
                     let is_correct_extension =
@@ -338,7 +340,7 @@ fn render_menu(state: &mut State, ui: &mut Ui, cpu: &mut ferrous::Ferrous) {
                 state.emulator_state = EmulatorState::Idle;
             }
 
-            MenuItem::new(im_str!("Pallete")).build_with_ref(ui, &mut state.pallete_window);
+            MenuItem::new(im_str!("Palette")).build_with_ref(ui, &mut state.palette_window);
 
             if let Some(cycles_menu) = ui.begin_menu(im_str!("Cycles per Frame"), true) {
                 Slider::<u16>::new(im_str!("cycles"))
@@ -397,15 +399,12 @@ fn render_windows(state: &mut State, ui: &mut Ui, cpu: &mut ferrous::Ferrous) {
             .opened(&mut state.about_window)
             .build(ui, || {
                 let token = ui.push_font(font_id);
-                ui.text_colored([0.7, 0.25, 0.1, 1.0], im_str!("Ferrous Chip-8"));
+                ui.text_colored([0.7, 0.25, 0.1, 1.0], im_str!("Ferrous"));
                 token.pop(&ui);
 
-                ui.text(im_str!(
-                    "A simple, full featured (super) Chip-8 interpreter written in pure Rust."
-                ));
+                ui.text(im_str!("A (super) Chip-8 interpreter written in Rust."));
                 ui.separator();
                 ui.text(im_str!("v{}", EMULATOR_VERSION));
-                ui.text(im_str!("Author: Anish Jewalikar"));
                 ui.text(im_str!(
                     "Licensed under the terms of the Apache-2.0 license."
                 ));
@@ -416,11 +415,11 @@ fn render_windows(state: &mut State, ui: &mut Ui, cpu: &mut ferrous::Ferrous) {
         ui.show_metrics_window(&mut state.metrics_window);
     }
 
-    if state.pallete_window {
-        if let Some(window) = Window::new(im_str!("Pallete"))
+    if state.palette_window {
+        if let Some(window) = Window::new(im_str!("Palette"))
             .always_auto_resize(true)
             .resizable(false)
-            .opened(&mut state.pallete_window)
+            .opened(&mut state.palette_window)
             .begin(ui)
         {
             ColorEdit::new(im_str!("Foreground Colour"), &mut state.fg_color)

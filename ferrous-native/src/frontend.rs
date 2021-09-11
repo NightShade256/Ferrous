@@ -5,7 +5,7 @@ use glium::glutin::{
     dpi::LogicalSize,
     event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
-    window::{Icon, WindowBuilder},
+    window::WindowBuilder,
 };
 use glium::{Display, Surface};
 
@@ -15,24 +15,13 @@ mod gui;
 
 use fps_limiter::FpsLimiter;
 
-/// Raw RGBA data of unmodified Rust logo.
-const LOGO_DATA: &[u8] = include_bytes!("assets/Rust Logo.raw");
-
 /// Initialize the window, and then glium's
 /// display.
 fn initialize_display(event_loop: &EventLoop<()>) -> Display {
-    // Interpreter the raw data as a window icon.
-    let icon_result = Icon::from_rgba(LOGO_DATA.to_vec(), 64, 64);
-
-    if icon_result.is_err() {
-        eprintln!("Failed to initialize window icon.");
-    }
-
     // Create a GL context, and a window.
     let cb = ContextBuilder::new();
     let wb = WindowBuilder::new()
         .with_decorations(true)
-        .with_window_icon(icon_result.ok())
         .with_title("Ferrous Chip-8")
         .with_min_inner_size(LogicalSize::new(128, 64))
         .with_inner_size(LogicalSize::new(1152, 576));
