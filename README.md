@@ -2,8 +2,8 @@
 
 Ferrous is a (super) Chip-8 interpreter written in Rust.
 
-<img src="./README/sweetcopter.png" width="600" /> &nbsp;
-<img src="./README/debugger.png" width="600" /> &nbsp;
+<img src="./README/Sweetcopter.png" width="600" /> &nbsp;
+<img src="./README/Snake.png" width="600" /> &nbsp;
 
 ## Installation
 
