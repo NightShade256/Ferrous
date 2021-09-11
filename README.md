@@ -1,80 +1,38 @@
-# Ferrous Chip-8
+# Ferrous
 
-A simple, full featured (super) Chip-8 interpreter written in pure Rust.
+Ferrous is a (super) Chip-8 interpreter written in Rust.
 
-## Structure
+<img src="./README/sweetcopter.png" width="600" /> &nbsp;
+<img src="./README/debugger.png" width="600" /> &nbsp;
 
-The project is divided into two parts,
+## Installation
 
-1. The `ferrous-core` backend crate which provides an implementation
-   of the (super) Chip-8 interpreter.
+Ferrous requires that you have the _latest_ stable Rust compiler, and also have GTK and ALSA development
+libraries installed on Linux systems.
 
-2. The `ferrous-ch8` frontend crate which augments the core crate by constructing
-   a frontend with the help of Dear ImGui.
+After ensuring the above, clone the repository and run `cargo build --release`. The binary will be created
+in the directory `./target/release`. You can then copy the binary to any location of your choosing.
 
-You can use the core crate in your own interpreters and build a frontend. It is fully
-documented and you shouldn't have a problem.
-
-## Features
-
-1. Allows tweaking quirks for accurate emulation.
-
-2. Written in pure Rust, achieving great performance.
-
-3. Ability to dynamically change FG, BG colours, cycles per frame
-   and view FPS.
-
-4. Debugger with ability to view work memory, register states, stack and allows
-   for stepping timers, and opcodes.
-
-![Blinky](./README/blinky.png)
-
-![Sweetcopter](./README/sweetcopter.png)
-
-![Debugger](./README/debugger.png)
-
-## Building
-
-You can build the interpreter through `cargo`.
-
-To do so, you will require a `Rust` toolchain for your platform.
-Note: You will need GTK and ALSA dev libs installed on linux.
-
-```bash
-cargo build --release
-```
-
-The binary will be stored in `target/release` copy that to a suitable location.
+**Note: There are prebuilt binaries available for Windows and Linux platforms in the
+releases section.**
 
 ## Usage
 
-Execute the built binary, and you will be up and running.
+Execute Ferrous' binary, and you will be up and running.
 
-## Implementation Details
+```ascii
+./ferrous-native
+```
 
-The interpreter passes the following test ROM(s),
+## Features
 
-1. https://github.com/corax89/chip8-test-rom
-2. https://github.com/metteo/chip8-test-rom
-3. https://github.com/Skosulor/c8int/tree/master/test
-4. BestCoder's test ROM (Need to tweak quirks to pass)
+Ferrous is certainly not perfect, but it supports the following features:
 
-There are options in the core crate to toggle behaviour (quirks) regarding the,
-load/store and shift instructions as described [here](https://chip-8.github.io/database/#options).
-
-By default though,
-
-1. Shift instructions place value of Vy into Vx and then shift.
-2. Load and Store instructions increment `I` register.
-3. Jump instruction `BNNN` will not factor in the 2nd nibble for
-   selecting the register to add to `NNN`.
-
-## Note
-
-The Rust logo is used in this project as the window icon. It is used unmodified under the
-terms listed [here](https://github.com/rust-lang/rust-artwork). This project is not affiliated to, nor
-endorsed by the Rust project.
+1. Tweak the behaviour of some ambiguous for maximum compatibility.
+2. Accurate Chip-8 and Super Chip-8 emulation (interpretation?)
+3. Rich native frontend with support for debugging and more.
+4. Extremely simple and easy to understand core logic implementation.
 
 ## License
 
-The project is licensed under the terms of the Apache-2.0 license.
+Ferrous is licensed under the terms of the Apache 2.0 license.
