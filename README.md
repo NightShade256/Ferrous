@@ -28,7 +28,7 @@ Execute Ferrous' binary, and you will be up and running.
 
 Ferrous is certainly not perfect, but it supports the following features:
 
-- Tweak the behaviour of some ambiguous for maximum compatibility.
+- Tweak the behaviour of some ambiguous instructions for maximum compatibility.
 - Accurate Chip-8 and Super Chip-8 emulation (interpretation?)
 - Rich native frontend with support for debugging and more.
 - Extremely simple and easy to understand core logic implementation.
