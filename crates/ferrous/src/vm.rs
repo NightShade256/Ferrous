@@ -34,7 +34,7 @@ impl Vm {
             pc: 0x0000,
             reg: [0x00; 0x10],
             sp: 0x0000,
-            vram: vec![0x00; 0x8000],
+            vram: vec![0x00; 0x2000],
             wram: vec![0x00; 0x1000],
         }
     }
