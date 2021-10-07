@@ -34,16 +34,12 @@ pub(crate) struct Vm {
 }
 
 impl Vm {
-    /// Create a new `Vm` instance.
-    pub fn new() -> Self {
-        Self {
-            id: 0x0000,
-            is_highres: false,
-            pc: 0x0000,
-            reg: [0x00; 0x10],
-            sp: 0x0000,
-            vram: vec![0x00; 0x2000],
-            wram: vec![0x00; 0x1000],
+    /// Get the size of the display as a width and height tuple.
+    pub fn get_display_size(&self) -> (u32, u32) {
+        if self.is_highres {
+            (128, 64)
+        } else {
+            (64, 32)
         }
     }
 
@@ -57,12 +53,16 @@ impl Vm {
         }
     }
 
-    /// Get the size of the display as a width and height tuple.
-    pub fn get_display_size(&self) -> (u32, u32) {
-        if self.is_highres {
-            (128, 64)
-        } else {
-            (64, 32)
+    /// Create a new `Vm` instance.
+    pub fn new() -> Self {
+        Self {
+            id: 0x0000,
+            is_highres: false,
+            pc: 0x0000,
+            reg: [0x00; 0x10],
+            sp: 0x0000,
+            vram: vec![0x00; 0x2000],
+            wram: vec![0x00; 0x1000],
         }
     }
 }
