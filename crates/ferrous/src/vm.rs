@@ -7,6 +7,10 @@ pub(crate) struct Vm {
     /// CPU instruction.
     id: u16,
 
+    /// Indicates whether the interpreter is currently in high resolution
+    /// mode.
+    is_highres: bool,
+
     /// The address of the next instruction to be executed.
     pc: u16,
 
@@ -31,6 +35,7 @@ impl Vm {
     pub fn new() -> Self {
         Self {
             id: 0x0000,
+            is_highres: false,
             pc: 0x0000,
             reg: [0x00; 0x10],
             sp: 0x0000,
@@ -46,6 +51,15 @@ impl Vm {
             Ok(())
         } else {
             Err("ROM length is greater than the permissible 3584 bytes")
+        }
+    }
+
+    /// Get the size of the display as a width and height tuple.
+    pub fn get_display_size(&self) -> (u32, u32) {
+        if self.is_highres {
+            (128, 64)
+        } else {
+            (64, 32)
         }
     }
 }
