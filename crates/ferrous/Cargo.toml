@@ -1,0 +1,15 @@
+[package]
+name = "ferrous"
+version = "0.1.0"
+edition = "2018"
+
+[features]
+savestates = ["serde"]
+
+[dependencies]
+bytemuck = "1.7.2"
+rand = "0.8.4"
+serde = { version = "1.0.130", features = ["derive"], optional = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.2.3", features = ["js"] }

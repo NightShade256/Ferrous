@@ -1,5 +1,5 @@
 [workspace]
-members = [
-    "ferrous",
-    "ferrous-native",
-]
+members = ["crates/*"]
+
+[profile.release]
+lto = "thin"
