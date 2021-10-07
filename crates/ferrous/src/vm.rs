@@ -6,6 +6,10 @@ pub(crate) struct Vm {
     /// The address of the next instruction to be executed.
     pc: u16,
 
+    /// 16 byte-wide general purpose registers. The 15th register `VF`
+    /// is used as a flag for overflow and more.
+    reg: [u8; 0x10],
+
     /// The address of the next empty stack slot.
     sp: u16,
 
@@ -23,6 +27,7 @@ impl Vm {
     pub fn new() -> Self {
         Self {
             pc: 0x0000,
+            reg: [0x00; 0x10],
             sp: 0x0000,
             vram: vec![0x00; 0x8000],
             wram: vec![0x00; 0x1000],
@@ -44,5 +49,17 @@ impl Vm {
     /// Clear the screen.
     fn op_00e0(&mut self) {
         self.vram.fill(0x00);
+    }
+
+    /// Jump to address `NNN`.
+    fn op_1nnn(&mut self, nnn: u16) {
+        self.pc = nnn;
+    }
+
+    /// Skip the following instruction if the value of register `VX` equals `NN`.
+    fn op_3xnn(&mut self, x: u8, nn: u8) {
+        if self.reg[x as usize] == nn {
+            self.pc = self.pc.wrapping_add(2);
+        }
     }
 }
