@@ -62,4 +62,19 @@ impl Vm {
             self.pc = self.pc.wrapping_add(2);
         }
     }
+
+    /// Skip the following instruction if the value of register `VX` is not equal to `NN`.
+    fn op_4xnn(&mut self, x: u8, nn: u8) {
+        if self.reg[x as usize] != nn {
+            self.pc = self.pc.wrapping_add(2);
+        }
+    }
+
+    /// Skip the following instruction if the value of register `VX` is equal to the value
+    /// of register `VY`.
+    fn op_5xy0(&mut self, x: u8, y: u8) {
+        if self.reg[x as usize] == self.reg[y as usize] {
+            self.pc = self.pc.wrapping_add(2);
+        }
+    }
 }
