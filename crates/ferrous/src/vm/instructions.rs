@@ -55,4 +55,20 @@ impl Vm {
     pub(super) fn op_annn(&mut self, nnn: u16) {
         self.id = nnn;
     }
+
+    #[inline]
+    pub(super) fn op_dxyn(&mut self, x: u8, y: u8, n: u8) {
+        let (_width, _height) = self.get_display_size();
+
+        let _x = self.reg[x as usize];
+        let _y = self.reg[y as usize];
+
+        self.reg[0xF] = 0x00;
+
+        if n == 0 {
+            todo!("Super Chip-8 16x16 sprite")
+        } else {
+            todo!("Chip-8 Nx8 sprite")
+        }
+    }
 }

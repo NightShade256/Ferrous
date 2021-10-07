@@ -35,7 +35,7 @@ pub(crate) struct Vm {
 
 impl Vm {
     /// Get the size of the display as a width and height tuple.
-    pub fn get_display_size(&self) -> (u32, u32) {
+    pub fn get_display_size(&self) -> (usize, usize) {
         if self.is_highres {
             (128, 64)
         } else {
