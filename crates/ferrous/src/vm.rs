@@ -3,6 +3,10 @@ use serde::{Deserialize, Serialize};
 
 #[cfg_attr(feature = "savestates", derive(Deserialize, Serialize))]
 pub(crate) struct Vm {
+    /// The address of the sprite that has to be drawn with the DRW
+    /// CPU instruction.
+    id: u16,
+
     /// The address of the next instruction to be executed.
     pc: u16,
 
@@ -26,6 +30,7 @@ impl Vm {
     /// Create a new `Vm` instance.
     pub fn new() -> Self {
         Self {
+            id: 0x0000,
             pc: 0x0000,
             reg: [0x00; 0x10],
             sp: 0x0000,
@@ -76,5 +81,20 @@ impl Vm {
         if self.reg[x as usize] == self.reg[y as usize] {
             self.pc = self.pc.wrapping_add(2);
         }
+    }
+
+    /// Store number `NN` in register `VX`.
+    fn op_6xnn(&mut self, x: u8, nn: u8) {
+        self.reg[x as usize] = nn;
+    }
+
+    /// Add the value `NN` to register `VX`.
+    fn op_7xnn(&mut self, x: u8, nn: u8) {
+        self.reg[x as usize] = self.reg[x as usize].wrapping_add(nn);
+    }
+
+    /// Store memory address `NNN` in register `I`.
+    fn op_annn(&mut self, nnn: u16) {
+        self.id = nnn;
     }
 }
