@@ -1216,9 +1216,9 @@ dependencies = [
 
 [[package]]
 name = "nfd2"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "306127f5ff8cb7c8cd3a8cf0fc162f4dc76ed589efa01ee84eb5593e7be97f75"
+checksum = "4001f1a6d9abb85ad5e983dca9906b46dbee553c687cc789bc5d09aa0feffaa5"
 dependencies = [
  "cc",
 ]
