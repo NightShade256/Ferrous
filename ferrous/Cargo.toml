@@ -10,5 +10,5 @@ wasm = ["getrandom"]
 [dependencies]
 getrandom = { version = "0.2.3", features = ["js"], optional = true }
 rand = "0.8.4"
-serde = { version = "1.0.130", default-features = false, features = ["derive"], optional = true }
+serde = { version = "1.0.141", default-features = false, features = ["derive"], optional = true }
 serde-big-array = { version = "0.3.2", features = ["const-generics"], optional = true }
